@@ -5,7 +5,15 @@ import math
 def PutPixel(x:int, y:int, canva:Canva, color:tuple):
     canva_height = canva.array.shape[0] - 1
     canva_weight = canva.array.shape[1] - 1
-    if(canva_height - y - canva_height // 2 > canva_height or x + canva_weight // 2 > canva_weight): return
+    if(
+        (
+            canva_height - y - canva_height // 2 > canva_height or \
+            canva_height - y - canva_height // 2 < 0
+        ) or (
+            x + canva_weight // 2 > canva_weight or
+            x + canva_weight // 2 < 0
+        )
+    ): return
     canva.array[canva_height - y - canva_height // 2][x + canva_weight // 2][0] = color[0]
     canva.array[canva_height - y - canva_height // 2][x + canva_weight // 2][1] = color[1]
     canva.array[canva_height - y - canva_height // 2][x + canva_weight // 2][2] = color[2]
