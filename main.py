@@ -1,16 +1,18 @@
 import numpy as np
 from utils import *
 from DataStructure import *
+from vedo import *
 from PIL import Image
 import matplotlib.pyplot as plt
 
-def main():
-    canva_height_px = 100
-    canva_width_px = 100
 
-    canva_height = 1
-    canva_width = 1
-    canva_d = 1
+def main():
+    canva_height_px = 3000
+    canva_width_px = 3000
+
+    canva_height = 50
+    canva_width = 50
+    canva_d = 1000
 
     picture = Canva(
         (canva_height, canva_width),
@@ -27,34 +29,45 @@ def main():
     #     picture, 
     #     (0xFF, 0x8E, 0xFF),
     #     (0xFF, 0x8E, 0xFF))
-    p0 = Point( 1,  1,  1, 1.0)
-    p1 = Point(-1,  1,  1, 1.0)
-    p2 = Point(-1, -1,  1, 1.0)
-    p3 = Point( 1, -1,  1, 1.0)
-    p4 = Point( 1,  1, -1, 1.0)
-    p5 = Point(-1,  1, -1, 1.0)
-    p6 = Point(-1, -1, -1, 1.0)
-    p7 = Point( 1, -1, -1, 1.0)
-    t0 = [p0, p1, p2]
-    t1 = [p0, p2, p3]
-    t2 = [p4, p0, p3]
-    t3 = [p4, p3, p7]
-    t4 = [p5, p4, p7]
-    t5 = [p5, p7, p6]
-    t6 = [p1, p5, p6]
-    t7 = [p1, p6, p2]
-    t8 = [p4, p5, p1]
-    t9 = [p4, p1, p0]
-    t10 = [p2, p6, p7]
-    t11 = [p2, p7, p3]
 
-    trangles = [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11]
-    for t in trangles:
-        DrawWireframeTriangle(t[0], t[1],t [2], picture, (0x00, 0x00, 0x00), (0x00, 0x00, 0x00))
+    
+    objects = load_objs("./models/teapot.obj", limit=1)
+    # with open("./models/Rushia.obj") as iif:
+    #     lines = iif.readlines()
+    
+    # with open("./models/Rushia_part.obj", 'w') as f:
+    #     flag_head = 0
+    #     for l in lines:
+    #         # print(lines[0:3])
+    #         # break
+    #         if(l[0] == "#"):
+    #             if(l == "# Head_1\n"):
+    #                 flag_head = 1
+    #             else:
+    #                 flag_head = 0
+    #         if(flag_head == 1):
+    #             f.write(l)
+    #     f.close()
+
+
+    # objects = [objects[0][1]]
+# 
+    for t in objects.triangles:
+        DrawWireframeTriangle(
+            t.points[0],
+            t.points[1],
+            t.points[2],
+            picture, (0x00, 0x00, 0x00), (0x00, 0x00, 0x00)
+        )
 
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result.png")
-    plt.imshow(img)
+    # mesh = Mesh("./models/teapot.obj")
+    # mesh.show()
 
 if __name__ == "__main__":
     main()
+
+# from vedo import *
+# mesh = Mesh("./models/Rushia.obj")
+# mesh.show()

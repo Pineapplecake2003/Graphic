@@ -220,6 +220,8 @@ def ProjectToCanvas(P:Point, canva:Canva):
     projected_p.y = int(projected_p.y * canva.C[0] / canva.V[0])
     return projected_p
 
+def shift_location(P:Point, shifts:tuple, scale):
+    return Point(scale * (P.x + shifts[0]), scale * (P.y + shifts[1]), scale * (P.z + shifts[2]), P.b)
 
 def DrawWireframeTriangle(
         P0:Point, 
@@ -232,19 +234,47 @@ def DrawWireframeTriangle(
     p0 = copy.deepcopy(P0)
     p1 = copy.deepcopy(P1)
     p2 = copy.deepcopy(P2)
-    p0.x = p0.x - 1.5
-    p0.z = p0.z + 7
-
-    p1.x = p1.x - 1.5
-    p1.z = p1.z + 7
-
-    p2.x = p2.x - 1.5
-    p2.z = p2.z + 7
+    
+    p0 = shift_location(p0, (0, 0, 3280), 1)
+    p1 = shift_location(p1, (0, 0, 3280), 1)
+    p2 = shift_location(p2, (0, 0, 3280), 1)
     
     p0 = ProjectToCanvas(p0, canva)
     p1 = ProjectToCanvas(p1, canva)
     p2 = ProjectToCanvas(p2, canva)
+    
     DrawShadedLine(p0, p1, canva, line_color)
     DrawShadedLine(p1, p2, canva, line_color)
     DrawShadedLine(p2, p0, canva, line_color)
     # DrawShadedTriangle(P0, P1, P2, canva, filled_color)
+
+def load_objs(path:str, limit:int):
+    with open(path) as f:
+        lines = f.readlines()
+    
+    points = []
+    tris = []
+    obj_num = 0
+    for line in lines:
+        if(line[0] == 'o'):
+            if(obj_num == limit):
+                break
+            else:
+                obj_num += 1
+        if(line[0] == "v" and line[1] == ' '):
+            splited = line.split(' ')
+            splited.remove('')
+            point = Point(float(splited[1]), float(splited[2]), float(splited[3]), 1.0)
+            points.append(point)
+        elif(line[0] == 'f'):
+            splited = line.split(' ')
+            # splited.remove('')
+            tri = Triangles(
+                points[int(splited[1].split('/')[0]) - 1], 
+                points[int(splited[2].split('/')[0]) - 1], 
+                points[int(splited[3].split('/')[0]) - 1])
+            tris.append(tri)
+    # for p in points:
+    #     print(p)
+    obj = ThreeDimensionObject(tris)
+    return obj

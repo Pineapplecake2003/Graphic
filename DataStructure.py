@@ -12,7 +12,7 @@ class Point():
         self.b = brightness
     
     def __str__(self):
-        return f"({self.x}, {self.y})"
+        return f"({self.x}, {self.y}, {self.z})"
 
 class Canva():
     array:np.ndarray
@@ -29,3 +29,17 @@ class Canva():
     
     def __str__(self):
         return f"V: {self.V}\nd: {self.d}\nC: {self.C}"
+
+class Triangles():
+    points:list
+    def __init__(self, p0, p1, p2):
+        self.points = [p0, p1, p2]
+
+    def __str__(self):
+        return f"{str(self.points[0])}, {str(self.points[1])}, {str(self.points[2])}"
+
+class ThreeDimensionObject():
+    triangles:list
+    
+    def __init__(self, triangles):
+        self.triangles = triangles
