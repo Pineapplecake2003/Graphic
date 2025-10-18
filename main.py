@@ -5,11 +5,11 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 def main():
-    canva_height_px = 10000
-    canva_width_px = 10000
+    canva_height_px = 100
+    canva_width_px = 100
 
-    canva_height = 10
-    canva_width = 10
+    canva_height = 1
+    canva_width = 1
     canva_d = 1
 
     picture = Canva(
@@ -53,7 +53,7 @@ def main():
         DrawWireframeTriangle(t[0], t[1],t [2], picture, (0x00, 0x00, 0x00), (0x00, 0x00, 0x00))
 
     img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./img/result.png")
+    img.save("./images/result.png")
     plt.imshow(img)
 
 if __name__ == "__main__":
