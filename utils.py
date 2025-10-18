@@ -235,9 +235,9 @@ def DrawWireframeTriangle(
     p1 = copy.deepcopy(P1)
     p2 = copy.deepcopy(P2)
     
-    p0 = shift_location(p0, (0, 0, 3280), 1)
-    p1 = shift_location(p1, (0, 0, 3280), 1)
-    p2 = shift_location(p2, (0, 0, 3280), 1)
+    p0 = shift_location(p0, (0, -500, 1780), 1)
+    p1 = shift_location(p1, (0, -500, 1780), 1)
+    p2 = shift_location(p2, (0, -500, 1780), 1)
     
     p0 = ProjectToCanvas(p0, canva)
     p1 = ProjectToCanvas(p1, canva)
@@ -256,14 +256,14 @@ def load_objs(path:str, limit:int):
     tris = []
     obj_num = 0
     for line in lines:
-        if(line[0] == 'o'):
-            if(obj_num == limit):
-                break
-            else:
-                obj_num += 1
+        # if(line[0] == 'o'):
+        #     if(obj_num == limit):
+        #         break
+        #     else:
+        #         obj_num += 1
         if(line[0] == "v" and line[1] == ' '):
             splited = line.split(' ')
-            splited.remove('')
+            # splited.remove('')
             point = Point(float(splited[1]), float(splited[2]), float(splited[3]), 1.0)
             points.append(point)
         elif(line[0] == 'f'):
@@ -276,5 +276,6 @@ def load_objs(path:str, limit:int):
             tris.append(tri)
     # for p in points:
     #     print(p)
+    print(f"Number of triangles: {len(tris)}")
     obj = ThreeDimensionObject(tris)
     return obj
