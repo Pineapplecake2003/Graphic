@@ -1,13 +1,15 @@
 import numpy as np
 from utils import *
 from DataStructure import *
-from vedo import *
+# from vedo import *
 from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
 def main():
+    obj_file = "./models/Rushia.obj"
+
     canva_height_px = 2700
     canva_width_px = 1200
 
@@ -32,7 +34,7 @@ def main():
     #     (0xFF, 0x8E, 0xFF))
 
     
-    objects = load_objs("./models/Rushia.obj")
+    objects = load_objs(obj_file)
     # with open("./models/Rushia.obj") as iif:
     #     lines = iif.readlines()
     
@@ -53,7 +55,7 @@ def main():
 
     # objects = [objects[0][1]]
 # 
-    for t in tqdm(objects.triangles):
+    for t in tqdm(objects.triangles, ncols=80):
         DrawWireframeTriangle(
             t.points[0],
             t.points[1],
@@ -63,8 +65,8 @@ def main():
 
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result.png")
-    mesh = Mesh("./models/Rushia.obj")
-    mesh.show()
+    # mesh = Mesh("./models/Anyaoutline.obj")
+    # mesh.show()
 
 if __name__ == "__main__":
     main()
