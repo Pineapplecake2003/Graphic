@@ -207,9 +207,6 @@ def DrawShadedTriangle (P0:Point, P1:Point, P2:Point, canva:Canva, color):
                 int(color[2] * b)
             )
             PutPixel(x, y, canva, shaded_color)
-            # canva.array[canva_height - y][x][0] = shaded_color[0]
-            # canva.array[canva_height - y][x][1] = shaded_color[1]
-            # canva.array[canva_height - y][x][2] = shaded_color[2]
 
 def ProjectToCanvas(P:Point, canva:Canva):
     x = P.x * canva.d / P.z
@@ -235,9 +232,9 @@ def DrawWireframeTriangle(
     p1 = copy.deepcopy(P1)
     p2 = copy.deepcopy(P2)
     
-    p0 = shift_location(p0, (0, -500, 1780), 1)
-    p1 = shift_location(p1, (0, -500, 1780), 1)
-    p2 = shift_location(p2, (0, -500, 1780), 1)
+    p0 = shift_location(p0, (0, 0, 5050), 1)
+    p1 = shift_location(p1, (0, 0, 5050), 1)
+    p2 = shift_location(p2, (0, 0, 5050), 1)
     
     p0 = ProjectToCanvas(p0, canva)
     p1 = ProjectToCanvas(p1, canva)
@@ -248,22 +245,17 @@ def DrawWireframeTriangle(
     DrawShadedLine(p2, p0, canva, line_color)
     # DrawShadedTriangle(P0, P1, P2, canva, filled_color)
 
-def load_objs(path:str, limit:int):
+def load_objs(path:str):
     with open(path) as f:
         lines = f.readlines()
     
     points = []
     tris = []
-    obj_num = 0
     for line in lines:
-        # if(line[0] == 'o'):
-        #     if(obj_num == limit):
-        #         break
-        #     else:
-        #         obj_num += 1
         if(line[0] == "v" and line[1] == ' '):
             splited = line.split(' ')
-            # splited.remove('')
+            if '' in splited:
+                splited.remove('')
             point = Point(float(splited[1]), float(splited[2]), float(splited[3]), 1.0)
             points.append(point)
         elif(line[0] == 'f'):
@@ -274,8 +266,6 @@ def load_objs(path:str, limit:int):
                 points[int(splited[2].split('/')[0]) - 1], 
                 points[int(splited[3].split('/')[0]) - 1])
             tris.append(tri)
-    # for p in points:
-    #     print(p)
     print(f"Number of triangles: {len(tris)}")
     obj = ThreeDimensionObject(tris)
     return obj

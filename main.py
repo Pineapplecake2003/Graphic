@@ -8,11 +8,11 @@ from tqdm import tqdm
 
 
 def main():
-    canva_height_px = 4320
-    canva_width_px = 7680
+    canva_height_px = 2700
+    canva_width_px = 1200
 
-    canva_height = 720
-    canva_width = 1280
+    canva_height = 450
+    canva_width = 200
     canva_d = 1000
 
     picture = Canva(
@@ -32,7 +32,7 @@ def main():
     #     (0xFF, 0x8E, 0xFF))
 
     
-    objects = load_objs("./models/Rushia.obj", limit=4)
+    objects = load_objs("./models/Rushia.obj")
     # with open("./models/Rushia.obj") as iif:
     #     lines = iif.readlines()
     
