@@ -1,7 +1,7 @@
 import numpy as np
 from utils import *
 from DataStructure import *
-# from vedo import *
+from vedo import *
 from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -65,8 +65,9 @@ def main():
 
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result.png")
-    # mesh = Mesh("./models/Anyaoutline.obj")
-    # mesh.show()
+    #plt.imshow(img)
+    mesh = Mesh(obj_file)
+    mesh.show()
 
 if __name__ == "__main__":
     main()
