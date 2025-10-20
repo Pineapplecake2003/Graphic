@@ -4,15 +4,22 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=release-25.05";
     flake-utils.url = "github:numtide/flake-utils";
+    nixgl.url = "github:nix-community/nixGL";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, nixgl }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
+          overlays = [ nixgl.overlays.default ];
         };
 
+        nix_pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          overlays = [ nixgl.overlay ];
+        };
+        
         devTools = with pkgs; [
         ];
 
@@ -56,6 +63,8 @@
         ]);
 
         x11Packages = with pkgs; [
+          libGL
+          libGLU
           xorg.xhost
           xorg.xauth
           xorg.libX11
@@ -78,7 +87,11 @@
           shellHook = ''
             export LIBGL_ALWAYS_SOFTWARE=1
           '';
-          packages = devTools ++ nativeBuildInputs ++ [pythonEnv] ++ x11Packages ++ mesaPackages;
+          packages = devTools 
+            ++ nativeBuildInputs 
+            ++ [ pythonEnv (nixgl.packages.${system}.nixGLIntel) ] 
+            ++ x11Packages 
+            ++ mesaPackages;
         };
       });
 }
