@@ -27,15 +27,6 @@
           git
         ];
 
-        mesaPackages = with pkgs; [
-          mesa
-          libGL
-          libGLU
-          xorg.libXxf86vm
-          xorg.libXi
-          xorg.libXrandr
-        ];
-
         pythonEnv = pkgs.python312.withPackages (ps: with ps; [
           tqdm
           numpy
@@ -84,14 +75,10 @@
       rec {
         devShells.default = pkgs.mkShell {
           name = "Graphic";
-          shellHook = ''
-            export LIBGL_ALWAYS_SOFTWARE=1
-          '';
           packages = devTools 
             ++ nativeBuildInputs 
-            ++ [ pythonEnv (nixgl.packages.${system}.nixGLIntel) ] 
-            ++ x11Packages 
-            ++ mesaPackages;
+            ++ [ pythonEnv (nixgl.packages.${system}.nixGLIntel) ]
+            ++ x11Packages;
         };
       });
 }
