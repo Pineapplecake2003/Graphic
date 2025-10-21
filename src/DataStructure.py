@@ -1,14 +1,10 @@
 import numpy as np
 class Point():
-    x:int
-    y:int
-    z:int
+    location:np.ndarray
     b:float
 
-    def __init__(self, x:int, y:int, z:int, brightness:float):
-        self.x = x
-        self.y = y
-        self.z = z
+    def __init__(self, location:list, brightness:float):
+        self.location = np.array(location, dtype=np.float32)
         self.b = brightness
     
     def __str__(self):
@@ -23,9 +19,11 @@ class Canva():
     light_srouce:list
     ambient:float
     s:float
-    def __init__(self, V:tuple, d:int, C:tuple, ambient:float, light_source:list, s=10):
-        WHITE = 255
-        self.array = np.full((C[0], C[1], 3), 255, dtype=np.uint8)
+    WHITE:int
+    dpi:int
+    def __init__(self, V:tuple, d:int, C:tuple, dpi:int, ambient:float, light_source:list, s=10):
+        self.WHITE = 255
+        self.array = np.full((C[0], C[1], 3), self.WHITE, dtype=np.uint8)
         self.z_inv_buf = np.full((C[0], C[1]), 0, dtype=np.float32)
         self.d = d
         self.C = C
@@ -33,7 +31,12 @@ class Canva():
         self.ambient = ambient
         self.light_srouce = light_source
         self.s = s
+        self.dpi = dpi
     
+    def clear(self):
+        self.array = np.full((self.C[0], self.C[1], 3), self.WHITE, dtype=np.uint8)
+        self.z_inv_buf = np.full((self.C[0], self.C[1]), 0, dtype=np.float32)
+
     def __str__(self):
         return f"V: {self.V}\nd: {self.d}\nC: {self.C}"
 
@@ -83,14 +86,22 @@ class ThreeDimensionObject():
             ],
         )
         R = r_z @ r_y @ r_x
+        offset_loc = np.array(location, dtype=float)
         for p in self.points:
-            offset_loc = np.array([location[0], location[1], location[2]], dtype=float)
-            original_loc = np.array([p.x, p.y, p.z], dtype=float)
+            original_loc = p.location
             transformed_loc = scale * original_loc
             transformed_loc = R @ transformed_loc
             transformed_loc = transformed_loc + offset_loc
-            p.x, p.y, p.z = transformed_loc[0], transformed_loc[1], transformed_loc[2]
+            p.location = transformed_loc
             # TODO brightness change
+
+    def reset(self):
+        for p, base in zip(self.points, self.base_coords):
+            p.x, p.y, p.z = base
+
+    def transform_from_base(self, location:tuple, rotation:tuple, scale:float):
+        self.reset()
+        self.transform(location, rotation, scale)
 
 
 

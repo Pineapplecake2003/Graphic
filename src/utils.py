@@ -24,7 +24,7 @@ def Interpolate(i0, d0, i1, d1):
     values = []
     a = (d1 - d0) / (i1 - i0)
     d = d0
-    for i in range(i0, i1):
+    for i in range(int(i0), int(i1)):
         values.append(d)
         d = d + a
     return values
@@ -72,40 +72,40 @@ def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
     return: drawn canva
     """
     points = [copy.deepcopy(P0), copy.deepcopy(P1)]
-    if(abs(points[1].x - points[0].x) > abs(points[1].y - points[0].y)):
+    if(abs(points[1].location[0] - points[0].location[0]) > abs(points[1].location[1] - points[0].location[1])):
         # Horizontal line
         # Make sure x0 < x1
-        if(points[0].x > points[1].x):
+        if(points[0].location[0] > points[1].location[0]):
             temp = points[1]
             points[1] = points[0]
             points[0] = temp
-        ys = Interpolate(points[0].x, points[0].y, points[1].x, points[1].y)
-        zs = Interpolate(points[0].x, points[0].z, points[1].x, points[1].z)
-        hs = Interpolate(points[0].x, points[0].b, points[1].x, points[1].b)
-        for x in range(points[0].x, points[1].x):
-            PutPixel(x, int(ys[x - points[0].x]), int(zs[x - points[0].x]), canva, 
+        ys = Interpolate(points[0].location[0], points[0].location[1], points[1].location[0], points[1].location[1])
+        zs = Interpolate(points[0].location[0], points[0].location[2], points[1].location[0], points[1].location[2])
+        hs = Interpolate(points[0].location[0], points[0].b,           points[1].location[0], points[1].b)
+        for x in range(int(points[0].location[0]), int(points[1].location[0])):
+            PutPixel(x, int(ys[x - int(points[0].location[0])]), int(zs[x - int(points[0].location[0])]), canva, 
                         (
-                            int(color[0] * hs[x - points[0].x]),
-                            int(color[1] * hs[x - points[0].x]),
-                            int(color[2] * hs[x - points[0].x])
+                            int(color[0] * hs[x - int(points[0].location[0])]),
+                            int(color[1] * hs[x - int(points[0].location[0])]),
+                            int(color[2] * hs[x - int(points[0].location[0])])
                         )
                     )
     else:
         # Vertical line
         # Make sure y0 < y1
-        if(points[0].y > points[1].y):
+        if(points[0].location[1] > points[1].location[1]):
             temp = points[1]
             points[1] = points[0]
             points[0] = temp
-        xs = Interpolate(points[0].y, points[0].x, points[1].y, points[1].x)
-        zs = Interpolate(points[0].y, points[0].z, points[1].y, points[1].z)
-        hs = Interpolate(points[0].y, points[0].b, points[1].y, points[1].b)
-        for y in range(points[0].y, points[1].y):
-            PutPixel(int(xs[y - points[0].y]), y, int(zs[y - points[0].y]), canva,
+        xs = Interpolate(points[0].location[1], points[0].location[0], points[1].location[1], points[1].location[0])
+        zs = Interpolate(points[0].location[1], points[0].location[2], points[1].location[1], points[1].location[2])
+        hs = Interpolate(points[0].location[1], points[0].b,           points[1].location[1], points[1].b)
+        for y in range(int(points[0].location[1]), int(points[1].location[1])):
+            PutPixel(int(xs[y - int(points[0].location[1])]), y, int(zs[y - int(points[0].location[1])]), canva,
                         (
-                            int(color[0] * hs[y - points[0].y]),
-                            int(color[1] * hs[y - points[0].y]),
-                            int(color[2] * hs[y - points[0].y])
+                            int(color[0] * hs[y - int(points[0].location[1])]),
+                            int(color[1] * hs[y - int(points[0].location[1])]),
+                            int(color[2] * hs[y - int(points[0].location[1])])
                         )
                     )
 
@@ -212,12 +212,17 @@ def DrawShadedTriangle (P0:Point, P1:Point, P2:Point, canva:Canva, color):
             # canva.array[canva_height - y][x][2] = shaded_color[2]
 
 def ProjectToCanvas(P:Point, canva:Canva):
-    x = P.x * canva.d / P.z
-    y = P.y * canva.d / P.z
-    z = canva.d
-    projected_p = Point(x, y, z, P.b)
-    projected_p.x = int(projected_p.x * canva.C[1] / canva.V[1])
-    projected_p.y = int(projected_p.y * canva.C[0] / canva.V[0])
+    canva_loc = P.location * canva.d / P.location[2]
+    dpi = canva.dpi
+    arr = np.array(
+        [
+            [dpi,   0, 0],
+            [  0, dpi, 0],
+            [  0,   0, 1]
+        ],dtype=np.float32
+    )
+    canva_px_loc = np.dot(arr, canva_loc)
+    projected_p = Point(canva_px_loc.tolist(), P.b)
     return projected_p
 
 def shift_location(P:Point, shifts:tuple, scale):
@@ -231,42 +236,20 @@ def DrawWireframeTriangle(
         line_color:tuple, 
         filled_color:tuple
     ):
-    mid_point = np.array(
-        [
-            (P0.x + P1.x + P2.x) / 3,
-            (P0.y + P1.y + P2.y) / 3,
-            (P0.z + P1.z + P2.z) / 3
-        ],
-        dtype=float
-    )
-    n_vector = np.cross(
-        np.array(
-            [
-                P1.x - P0.x,
-                P1.y - P0.y,
-                P1.z - P0.z
-            ],
-            dtype=float
-        ),
-        np.array(
-            [
-                P2.x - P0.x,
-                P2.y - P0.y,
-                P2.z - P0.z
-            ],
-            dtype=float
-        )
-    )
-    if (np.dot(n_vector, -mid_point) <= 0):
+    minus_p0_loc = -P0.location
+    minus_p1_loc = -P1.location
+    minus_p2_loc = -P2.location
+    n_vector = np.cross(P1.location - P0.location,P2.location - P0.location)
+    if (
+        np.dot(n_vector, minus_p0_loc) <= 0 or
+        np.dot(n_vector, minus_p1_loc) <= 0 or
+        np.dot(n_vector, minus_p2_loc) <= 0
+    ):
         return
-
-    p0 = copy.deepcopy(P0)
-    p1 = copy.deepcopy(P1)
-    p2 = copy.deepcopy(P2)
     
-    p0 = ProjectToCanvas(p0, canva)
-    p1 = ProjectToCanvas(p1, canva)
-    p2 = ProjectToCanvas(p2, canva)
+    p0 = ProjectToCanvas(P0, canva)
+    p1 = ProjectToCanvas(P1, canva)
+    p2 = ProjectToCanvas(P2, canva)
     
     DrawShadedLine(p0, p1, canva, line_color)
     DrawShadedLine(p1, p2, canva, line_color)
@@ -284,7 +267,7 @@ def load_objs(path:str):
             splited = line.split(' ')
             if '' in splited:
                 splited.remove('')
-            point = Point(float(splited[1]), float(splited[2]), float(splited[3]), 1.0)
+            point = Point([float(splited[i]) for i in range(1, 4)], 1.0)
             points.append(point)
         elif(line[0] == 'f'):
             splited = line.split(' ')

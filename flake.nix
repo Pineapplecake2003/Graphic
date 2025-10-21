@@ -32,6 +32,7 @@
           numpy
           pillow
           matplotlib
+          pygame
           (ps.buildPythonPackage rec {
             pname = "vedo";
             version = "2025.5.4";
