@@ -45,25 +45,25 @@ def main():
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result.png")
 
-    pygame.init()
-    try:
-        screen = pygame.display.set_mode((canva_width_px, canva_height_px))
-        pygame.display.set_caption("Graphic Renderer")
-        surface_array = np.ascontiguousarray(np.transpose(picture.array, (1, 0, 2)))
-        pygame_surface = pygame.surfarray.make_surface(surface_array)
-        clock = pygame.time.Clock()
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_q):
-                    running = False
-            screen.blit(pygame_surface, (0, 0))
-            pygame.display.flip()
-            clock.tick(60)
-    finally:
-        pygame.quit()
+    # pygame.init()
+    # try:
+    #     screen = pygame.display.set_mode((canva_width_px, canva_height_px))
+    #     pygame.display.set_caption("Graphic Renderer")
+    #     surface_array = np.ascontiguousarray(np.transpose(picture.array, (1, 0, 2)))
+    #     pygame_surface = pygame.surfarray.make_surface(surface_array)
+    #     clock = pygame.time.Clock()
+    #     running = True
+    #     while running:
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 running = False
+    #             elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_q):
+    #                 running = False
+    #         screen.blit(pygame_surface, (0, 0))
+    #         pygame.display.flip()
+    #         clock.tick(60)
+    # finally:
+    #     pygame.quit()
 
 if __name__ == "__main__":
     main()

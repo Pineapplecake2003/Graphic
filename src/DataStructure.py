@@ -3,8 +3,11 @@ class Point():
     location:np.ndarray
     b:float
 
-    def __init__(self, location:list, brightness:float):
-        self.location = np.array(location, dtype=np.float32)
+    def __init__(self, location, brightness:float):
+        if isinstance(location, list):
+            self.location = np.array(location, dtype=np.float32, copy=True)
+        elif isinstance(location, np.ndarray):
+            self.location = location.astype(np.float32, copy=True)
         self.b = brightness
     
     def __str__(self):

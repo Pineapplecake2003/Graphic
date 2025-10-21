@@ -59,8 +59,6 @@ def DrawLine(P0:Point, P1:Point, canva:Canva, color:tuple):
             points[0] = temp
         xs = Interpolate(points[0].y, points[0].x, points[1].y, points[1].x)
         for y in range(points[0].y, points[1].y):
-            # print(canva_height - y)
-            # print(canva_width - int(xs[y - P0.y]))
             canva.array[canva_height - y][int(xs[y - points[0].y])][0] = color[0] # R
             canva.array[canva_height - y][int(xs[y - points[0].y])][1] = color[1] # G
             canva.array[canva_height - y][int(xs[y - points[0].y])][2] = color[2] # B
@@ -71,7 +69,9 @@ def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
         pass by value
     return: drawn canva
     """
-    points = [copy.deepcopy(P0), copy.deepcopy(P1)]
+    points = [Point(P0.location, P0.b), Point(P1.location, P1.b)]
+    points[0].location = points[0].location.astype(np.int32)
+    points[1].location = points[1].location.astype(np.int32)
     if(abs(points[1].location[0] - points[0].location[0]) > abs(points[1].location[1] - points[0].location[1])):
         # Horizontal line
         # Make sure x0 < x1
@@ -82,12 +82,12 @@ def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
         ys = Interpolate(points[0].location[0], points[0].location[1], points[1].location[0], points[1].location[1])
         zs = Interpolate(points[0].location[0], points[0].location[2], points[1].location[0], points[1].location[2])
         hs = Interpolate(points[0].location[0], points[0].b,           points[1].location[0], points[1].b)
-        for x in range(int(points[0].location[0]), int(points[1].location[0])):
-            PutPixel(x, int(ys[x - int(points[0].location[0])]), int(zs[x - int(points[0].location[0])]), canva, 
+        for x in range(points[0].location[0], points[1].location[0]):
+            PutPixel(x, int(ys[x - points[0].location[0]]), int(zs[x - points[0].location[0]]), canva, 
                         (
-                            int(color[0] * hs[x - int(points[0].location[0])]),
-                            int(color[1] * hs[x - int(points[0].location[0])]),
-                            int(color[2] * hs[x - int(points[0].location[0])])
+                            int(color[0] * hs[x - points[0].location[0]]),
+                            int(color[1] * hs[x - points[0].location[0]]),
+                            int(color[2] * hs[x - points[0].location[0]])
                         )
                     )
     else:
@@ -100,12 +100,12 @@ def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
         xs = Interpolate(points[0].location[1], points[0].location[0], points[1].location[1], points[1].location[0])
         zs = Interpolate(points[0].location[1], points[0].location[2], points[1].location[1], points[1].location[2])
         hs = Interpolate(points[0].location[1], points[0].b,           points[1].location[1], points[1].b)
-        for y in range(int(points[0].location[1]), int(points[1].location[1])):
-            PutPixel(int(xs[y - int(points[0].location[1])]), y, int(zs[y - int(points[0].location[1])]), canva,
+        for y in range(points[0].location[1], points[1].location[1]):
+            PutPixel(int(xs[y - points[0].location[1]]), y, int(zs[y - points[0].location[1]]), canva,
                         (
-                            int(color[0] * hs[y - int(points[0].location[1])]),
-                            int(color[1] * hs[y - int(points[0].location[1])]),
-                            int(color[2] * hs[y - int(points[0].location[1])])
+                            int(color[0] * hs[y - points[0].location[1]]),
+                            int(color[1] * hs[y - points[0].location[1]]),
+                            int(color[2] * hs[y - points[0].location[1]])
                         )
                     )
 
@@ -222,7 +222,7 @@ def ProjectToCanvas(P:Point, canva:Canva):
         ],dtype=np.float32
     )
     canva_px_loc = np.dot(arr, canva_loc)
-    projected_p = Point(canva_px_loc.tolist(), P.b)
+    projected_p = Point(canva_px_loc, P.b)
     return projected_p
 
 def shift_location(P:Point, shifts:tuple, scale):
