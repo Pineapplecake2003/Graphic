@@ -19,8 +19,9 @@ def main():
 
     canva_d = 1000
 
-    ambient = 0.4
-    light_src = DataStructure.Point([300, 0, 4800], 0.7)
+    ambient = 0.2
+    light_src0 = DataStructure.Light([300, 0, 4800], 0.7, "point")
+    light_src1 = DataStructure.Light([1, 1, 0], 0.6, "directional")
 
     picture = Canva(
         (canva_height, canva_width),
@@ -28,7 +29,7 @@ def main():
         (canva_height_px, canva_width_px),
         dpi,
         ambient,
-        [light_src]
+        [light_src0, light_src1]
     )
     
     object = load_objs(obj_file)

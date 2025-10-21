@@ -33,7 +33,10 @@ def get_light_for_triangle(t: Triangles, canva: Canva):
     # Lighting loop
     for li in canva.light_srouce:
         for p in t.points:
-            l_vector = li.loc - p.loc
+            if li.ltype == "point":
+                l_vector = li.loc - p.loc
+            elif li.ltype == "directional":
+                l_vector = -li.li_dir
             l_vector /= np.linalg.norm(l_vector)
 
             v_vector = -p.loc

@@ -13,6 +13,23 @@ class Point():
     def __str__(self):
         return str(self.loc)
 
+class Light(Point):
+    li_dir:np.ndarray
+    ltype:str
+
+    def __init__(self, loc, brightness, ltype):
+        super().__init__(loc, brightness)
+        assert(ltype == "point" or ltype == "directional")
+        
+        self.ltype = ltype
+        if ltype == "directional":
+            if isinstance(loc, list):
+                self.li_dir = np.array(loc, dtype=np.float32, copy=True)
+            elif isinstance(loc, np.ndarray):
+                self.li_dir = loc.astype(np.float32, copy=True)
+        else:
+            self.li_dir = np.array([0, 0, 0], dtype=np.float32)
+
 class Canva():
     array:np.ndarray
     d:int
