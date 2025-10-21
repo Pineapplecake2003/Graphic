@@ -11,8 +11,8 @@ def main():
     obj_file = "./models/Rushia.obj"
 
     dpi = 30
-    canva_height = 300
-    canva_width = 300
+    canva_height = 400
+    canva_width = 400
 
     canva_height_px = canva_height * dpi
     canva_width_px = canva_width * dpi
@@ -32,7 +32,7 @@ def main():
     )
     
     object = load_objs(obj_file)
-    object.transform((0, -200, 5015), (30, 180, 0), 1.0)
+    object.transform((0, -200, 5015), (30, 225, 45), 1.0)
     for t in tqdm(object.triangles, ncols=50):
         DrawWireframeTriangle(
             t,
