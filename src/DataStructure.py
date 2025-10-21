@@ -1,17 +1,17 @@
 import numpy as np
 class Point():
-    location:np.ndarray
+    loc:np.ndarray
     b:float
 
-    def __init__(self, location, brightness:float):
-        if isinstance(location, list):
-            self.location = np.array(location, dtype=np.float32, copy=True)
-        elif isinstance(location, np.ndarray):
-            self.location = location.astype(np.float32, copy=True)
+    def __init__(self, loc, brightness:float):
+        if isinstance(loc, list):
+            self.loc = np.array(loc, dtype=np.float32, copy=True)
+        elif isinstance(loc, np.ndarray):
+            self.loc = loc.astype(np.float32, copy=True)
         self.b = brightness
     
     def __str__(self):
-        return f"({self.x}, {self.y}, {self.z})"
+        return str(self.loc)
 
 class Canva():
     array:np.ndarray
@@ -71,7 +71,7 @@ class ThreeDimensionObject():
                 [0, np.cos(a), -np.sin(a)],
                 [0, np.sin(a), np.cos(a)]
             ],
-            dtype=float
+            dtype=np.float32
         )
         r_y = np.array(
             [
@@ -79,7 +79,7 @@ class ThreeDimensionObject():
                 [0, 1, 0],
                 [-np.sin(b), 0, np.cos(b)]
             ],
-            dtype=float
+            dtype=np.float32
         )
         r_z = np.array(
             [
@@ -87,24 +87,17 @@ class ThreeDimensionObject():
                 [np.sin(g), np.cos(g), 0],
                 [0, 0, 1]
             ],
+            dtype=np.float32
         )
         R = r_z @ r_y @ r_x
         offset_loc = np.array(location, dtype=float)
         for p in self.points:
-            original_loc = p.location
+            original_loc = p.loc
             transformed_loc = scale * original_loc
             transformed_loc = R @ transformed_loc
             transformed_loc = transformed_loc + offset_loc
-            p.location = transformed_loc
+            p.loc = transformed_loc
             # TODO brightness change
-
-    def reset(self):
-        for p, base in zip(self.points, self.base_coords):
-            p.x, p.y, p.z = base
-
-    def transform_from_base(self, location:tuple, rotation:tuple, scale:float):
-        self.reset()
-        self.transform(location, rotation, scale)
 
 
 
