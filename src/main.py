@@ -5,7 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import DataStructure
-import pygame
+# import pygame
 
 def main():
     obj_file = "./models/Rushia.obj"
@@ -39,7 +39,8 @@ def main():
             t,
             picture, 
             (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3)
+            (0x4E, 0xFE, 0xB3),
+            "Flat"
         )
 
     img = Image.fromarray(picture.array, mode="RGB")

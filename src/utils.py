@@ -2,6 +2,7 @@ import numpy as np
 from DataStructure import *
 import copy
 import math
+from tqdm import tqdm
 def PutPixel(x:int, y:int, z:float, canva:Canva, color:tuple):
     canva_height = canva.array.shape[0] - 1
     canva_weight = canva.array.shape[1] - 1
@@ -17,7 +18,7 @@ def PutPixel(x:int, y:int, z:float, canva:Canva, color:tuple):
         canva.array[y_idx][x_idx][1] = 255 if color[1] >= 255 else color[1]
         canva.array[y_idx][x_idx][2] = 255 if color[2] >= 255 else color[2]
 
-def get_light_for_triangle(t: Triangles, canva: Canva):
+def get_light_for_triangle(t: Triangle, canva: Canva):
     # Ambient term
     I_p = canva.ambient
     for p in t.points:
@@ -96,7 +97,7 @@ def DrawLine(P0:Point, P1:Point, canva:Canva, color:tuple):
             canva.array[canva_height - y][int(xs[y - points[0].y])][1] = color[1] # G
             canva.array[canva_height - y][int(xs[y - points[0].y])][2] = color[2] # B
 
-def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
+def DrawFlatShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
     """
     input: P0, P1, canva
         pass by value
@@ -152,7 +153,7 @@ def DrawShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
             )
 
 
-def DrawShadedTriangle (p0, p1, p2, canva:Canva, color):
+def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
 
     if(points[0].loc[1] == points[1].loc[1] and points[1].loc[1] == points[2].loc[1]):
@@ -248,11 +249,14 @@ def ProjectToCanvas(P:Point, canva:Canva):
     return projected_p
 
 def DrawWireframeTriangle(
-        tri:Triangles,
+        tri:Triangle,
         canva:Canva, 
         line_color:tuple, 
-        filled_color:tuple
+        filled_color:tuple,
+        shade_type:str
     ):
+    assert(shade_type == "Flat" or shade_type == "Phong"), "Shadaw type must be 'Flat' or 'Phong'."
+
     minus_p0_loc = -tri.points[0].loc
     minus_p1_loc = -tri.points[1].loc
     minus_p2_loc = -tri.points[2].loc
@@ -264,42 +268,68 @@ def DrawWireframeTriangle(
         np.dot(n_vector, minus_p2_loc) <= 0
     ):
         return
-    
-    get_light_for_triangle(tri, canva)
+    if shade_type == "Flat":
+        get_light_for_triangle(tri, canva)
+    elif shade_type == "Phong":
+        pass # ...
 
 
-    p0 = ProjectToCanvas(tri.points[0], canva)
-    p1 = ProjectToCanvas(tri.points[1], canva)
-    p2 = ProjectToCanvas(tri.points[2], canva)
-    if p0 is None or p1 is None or p2 is None:
-        return
-    
-    DrawShadedLine(p0, p1, canva, line_color)
-    DrawShadedLine(p1, p2, canva, line_color)
-    DrawShadedLine(p2, p0, canva, line_color)
-    DrawShadedTriangle(p0, p1, p2, canva, filled_color)
+    if shade_type == "Flat":
+        p0 = ProjectToCanvas(tri.points[0], canva)
+        p1 = ProjectToCanvas(tri.points[1], canva)
+        p2 = ProjectToCanvas(tri.points[2], canva)
+        if p0 is None or p1 is None or p2 is None:
+            return
+        DrawFlatShadedLine(p0, p1, canva, line_color)
+        DrawFlatShadedLine(p1, p2, canva, line_color)
+        DrawFlatShadedLine(p2, p0, canva, line_color)
+        DrawFlatShadedTriangle(p0, p1, p2, canva, filled_color)
+    elif shade_type == "Phong":
+        pass
 
 def load_objs(path:str):
+    print(f"Loading {path}...")
     with open(path) as f:
         lines = f.readlines()
     
     points = []
     tris = []
-    for line in lines:
-        if(line[0] == "v" and line[1] == ' '):
+    vns = []
+    for line in tqdm(lines, ncols=50):
+        if line.startswith("v "):
             splited = line.split(' ')
             if '' in splited:
                 splited.remove('')
             point = Point([float(splited[i]) for i in range(1, 4)], 1.0)
             points.append(point)
-        elif(line[0] == 'f'):
+        elif line.startswith("vn "):
             splited = line.split(' ')
             if '' in splited:
                 splited.remove('')
-            tri = Triangles(
-                points[int(splited[1].split('/')[0]) - 1], 
-                points[int(splited[2].split('/')[0]) - 1], 
-                points[int(splited[3].split('/')[0]) - 1])
+            vn = np.array([float(splited[i]) for i in range(1, 4)], np.float32)
+            vns.append(vn)
+        elif line.startswith("f "):
+            splited = line.split(' ')
+            if '' in splited:
+                splited.remove('')
+            
+            point_infos = []
+            for s in splited[1:]:
+                s = s.replace('\n', '')
+                point_infos.append(s.split('/'))
+            tri = Triangle(
+                [
+                    points[int(point_infos[0][0]) - 1], 
+                    points[int(point_infos[1][0]) - 1], 
+                    points[int(point_infos[2][0]) - 1]
+                ],
+                [],# Not support vt yet
+                [
+                    vns[int(point_infos[0][2]) - 1], 
+                    vns[int(point_infos[1][2]) - 1], 
+                    vns[int(point_infos[2][2]) - 1]
+                ]
+            )
             tris.append(tri)
     print(f"Number of triangles: {len(tris)}")
     obj = ThreeDimensionObject(tris, points)

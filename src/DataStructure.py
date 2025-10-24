@@ -60,10 +60,12 @@ class Canva():
     def __str__(self):
         return f"V: {self.V}\nd: {self.d}\nC: {self.C}"
 
-class Triangles():
+class Triangle():
     points:list
-    def __init__(self, p0, p1, p2):
-        self.points = [p0, p1, p2]
+    vns:list
+    def __init__(self, points, vts, vns):
+        self.points = points
+        self.vns = vns
 
     def __str__(self):
         return f"{str(self.points[0])}, {str(self.points[1])}, {str(self.points[2])}"
