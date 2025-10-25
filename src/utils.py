@@ -14,11 +14,12 @@ def PutPixel(x:int, y:int, z:float, canva:Canva, color:tuple):
     z_inv = 1.0 / z
     if(z_inv > canva.z_inv_buf[y_idx][x_idx]):
         canva.z_inv_buf[y_idx][x_idx] = z_inv
-        canva.array[y_idx][x_idx][0] = 255 if color[0] >= 255 else color[0]
-        canva.array[y_idx][x_idx][1] = 255 if color[1] >= 255 else color[1]
-        canva.array[y_idx][x_idx][2] = 255 if color[2] >= 255 else color[2]
+        clamped = np.clip(np.round(color).astype(np.int32), 0, 255)
+        canva.array[y_idx][x_idx][0] = clamped[0]
+        canva.array[y_idx][x_idx][1] = clamped[1]
+        canva.array[y_idx][x_idx][2] = clamped[2]
 
-def get_light_for_triangle(t: Triangle, canva: Canva):
+def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
     # Ambient term
     I_p = canva.ambient
     for p in t.points:
@@ -48,7 +49,7 @@ def get_light_for_triangle(t: Triangle, canva: Canva):
 
             # Diffuse + Specular
             shooted = max(np.dot(n_vector, l_vector), 0.0)
-            reflected = max(np.dot(r_vector, v_vector), 0.0) ** canva.s
+            reflected = max(np.dot(r_vector, v_vector), 0.0) ** s
 
             p.b += li.b * (shooted + reflected)
 
@@ -152,6 +153,133 @@ def DrawFlatShadedLine(P0:Point, P1:Point, canva:Canva, color:tuple):
                 )
             )
 
+def getPhongHs(locs:np.ndarray, vns:np.ndarray, canva:Canva, s:float):
+    locs = np.asarray(locs, dtype=np.float32)
+    vns = np.asarray(vns, dtype=np.float32)
+
+    if locs.shape[0] != 3 or vns.shape[0] != 3:
+        raise ValueError("locs and vns must be shaped (3, N)")
+
+    sample_count = locs.shape[1]
+    if sample_count == 0:
+        return np.zeros((0,), dtype=np.float32)
+
+    n_vector = vns.copy()
+    n_norm = np.linalg.norm(n_vector, axis=0, keepdims=True)
+    n_vector /= np.maximum(n_norm, 1e-6)
+
+    v_vector = -locs.copy()
+    v_norm = np.linalg.norm(v_vector, axis=0, keepdims=True)
+    v_vector /= np.maximum(v_norm, 1e-6)
+
+    hs = np.full((sample_count,), canva.ambient, dtype=np.float32)
+
+    for li in canva.light_srouce:
+        if li.ltype == "point":
+            light_pos = np.asarray(li.loc, dtype=np.float32).reshape(3, 1)
+            l_vector = light_pos - locs
+        elif li.ltype == "directional":
+            light_dir = -np.asarray(li.li_dir, dtype=np.float32).reshape(3, 1)
+            l_vector = np.broadcast_to(light_dir, locs.shape).copy()
+        else:
+            continue
+
+        l_norm = np.linalg.norm(l_vector, axis=0, keepdims=True)
+        l_vector /= np.maximum(l_norm, 1e-6)
+
+        ndotl = np.clip(np.sum(n_vector * l_vector, axis=0), 0.0, None)
+        r_vector = 2.0 * n_vector * ndotl[np.newaxis, :] - l_vector
+        r_norm = np.linalg.norm(r_vector, axis=0, keepdims=True)
+        r_vector /= np.maximum(r_norm, 1e-6)
+
+        rdotv = np.clip(np.sum(r_vector * v_vector, axis=0), 0.0, None)
+        hs += li.b * (ndotl + rdotv ** s)
+    
+    return np.clip(hs, 0.0, None)
+
+
+def DrawPhongShadedLine(
+        P0:Point, P1:Point, 
+        vn0:np.ndarray, vn1:np.ndarray, 
+        canva:Canva, color:tuple, s:float
+    ):
+    points = [Point(P0.loc, P0.b), Point(P1.loc, P1.b)]
+    vns = [np.array(vn0, dtype=np.float32, copy=True), np.array(vn1, dtype=np.float32, copy=True)]
+    if abs(points[1].loc[0] - points[0].loc[0]) > abs(points[1].loc[1] - points[0].loc[1]):
+        # Horizontal line
+        # Make sure x0 < x1
+        if points[0].loc[0] > points[1].loc[0]:
+            points[0], points[1] = points[1], points[0]
+        x0 = int(round(points[0].loc[0]))
+        x1 = int(round(points[1].loc[0]))
+        if x0 == x1:
+            return
+        xs = range(x0, x1)
+        ys = Interpolate(x0, points[0].loc[1], x1, points[1].loc[1])
+        zs = Interpolate(x0, points[0].loc[2], x1, points[1].loc[2])
+        locs = np.array([
+            xs,
+            ys, 
+            zs
+        ], dtype=np.float32)
+        vnxs = Interpolate(x0, vns[0][0], x1, vns[1][0])
+        vnys = Interpolate(x0, vns[0][1], x1, vns[1][1])
+        vnzs = Interpolate(x0, vns[0][2], x1, vns[1][2])
+        vns = np.array([
+            vnxs,
+            vnys, 
+            vnzs
+        ], dtype=np.float32)
+        hs = getPhongHs(locs, vns, canva, s)
+        for idx, x in enumerate(range(x0, x1)):
+            PutPixel(
+                x,
+                int(round(ys[idx])),
+                zs[idx],
+                canva,
+                (
+                    int(color[0] * hs[idx]),
+                    int(color[1] * hs[idx]),
+                    int(color[2] * hs[idx])
+                )
+            )
+    else:
+        # Vertical line
+        if points[0].loc[1] > points[1].loc[1]:
+            points[0], points[1] = points[1], points[0]
+        y0 = int(round(points[0].loc[1]))
+        y1 = int(round(points[1].loc[1]))
+        if y0 == y1:
+            return
+        xs = Interpolate(y0, points[0].loc[0], y1, points[1].loc[0])
+        ys = range(y0, y1)
+        zs = Interpolate(y0, points[0].loc[2], y1, points[1].loc[2])
+        locs = np.array([
+            xs,
+            ys, 
+            zs
+        ], dtype=np.float32)
+        vnxs = Interpolate(y0, vns[0][0], y1, vns[1][0])
+        vnys = Interpolate(y0, vns[0][1], y1, vns[1][1])
+        vnzs = Interpolate(y0, vns[0][2], y1, vns[1][2])
+        vns = np.array([
+            vnxs,
+            vnys, 
+            vnzs
+        ], dtype=np.float32)
+        hs = getPhongHs(locs, vns, canva, s)
+        for idx, y in enumerate(range(y0, y1)):
+            PutPixel(
+                int(round(xs[idx])),
+                y,
+                zs[idx],
+                canva,
+                (
+                    int(color[0] * hs[idx]),
+                    int(color[1] * hs[idx]),
+                    int(color[2] * hs[idx])
+                )
+            )
 
 def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
@@ -233,9 +361,125 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
                 int(color[2] * b)
             )
             PutPixel(x=x, y=y, z=z_segment[x - x_start], canva=canva, color=shaded_color)
-            # canva.array[canva_height - y][x][0] = shaded_color[0]
-            # canva.array[canva_height - y][x][1] = shaded_color[1]
-            # canva.array[canva_height - y][x][2] = shaded_color[2]
+
+def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple, s:float):
+    vertices = [
+        (p0, np.asarray(vn0, dtype=np.float32)),
+        (p1, np.asarray(vn1, dtype=np.float32)),
+        (p2, np.asarray(vn2, dtype=np.float32))
+    ]
+    vertices.sort(key=lambda item: item[0].loc[1])
+
+    points = [item[0] for item in vertices]
+    normals = [item[1] for item in vertices]
+
+    y0 = int(round(points[0].loc[1]))
+    y1 = int(round(points[1].loc[1]))
+    y2 = int(round(points[2].loc[1]))
+    if y0 == y2:
+        return
+
+    def _span(i0, d0, i1, d1):
+        if i0 == i1:
+            return np.empty(0, dtype=np.float32)
+        return np.array(Interpolate(i0, d0, i1, d1), dtype=np.float32)
+
+    def _stack(x_vals, y_vals, z_vals):
+        if x_vals.size == 0:
+            return np.empty((3, 0), dtype=np.float32)
+        return np.vstack((x_vals, y_vals, z_vals))
+
+    x01 = _span(y0, points[0].loc[0], y1, points[1].loc[0])
+    x12 = _span(y1, points[1].loc[0], y2, points[2].loc[0])
+    x02 = _span(y0, points[0].loc[0], y2, points[2].loc[0])
+    if x02.size == 0:
+        return
+
+    y02 = np.arange(y0, y2, dtype=np.float32)
+    if y02.size == 0:
+        return
+
+    z01 = _span(y0, points[0].loc[2], y1, points[1].loc[2])
+    z12 = _span(y1, points[1].loc[2], y2, points[2].loc[2])
+    z02 = _span(y0, points[0].loc[2], y2, points[2].loc[2])
+
+    x012 = np.concatenate((x01, x12)) if x01.size or x12.size else np.empty(0, dtype=np.float32)
+    z012 = np.concatenate((z01, z12)) if z01.size or z12.size else np.empty(0, dtype=np.float32)
+    if x012.size == 0:
+        return
+
+    vnxs01 = _span(y0, normals[0][0], y1, normals[1][0])
+    vnys01 = _span(y0, normals[0][1], y1, normals[1][1])
+    vnzs01 = _span(y0, normals[0][2], y1, normals[1][2])
+    vnxs12 = _span(y1, normals[1][0], y2, normals[2][0])
+    vnys12 = _span(y1, normals[1][1], y2, normals[2][1])
+    vnzs12 = _span(y1, normals[1][2], y2, normals[2][2])
+    vnxs02 = _span(y0, normals[0][0], y2, normals[2][0])
+    vnys02 = _span(y0, normals[0][1], y2, normals[2][1])
+    vnzs02 = _span(y0, normals[0][2], y2, normals[2][2])
+
+    vns01 = _stack(vnxs01, vnys01, vnzs01)
+    vns12 = _stack(vnxs12, vnys12, vnzs12)
+    vns02 = _stack(vnxs02, vnys02, vnzs02)
+    vns012 = np.concatenate((vns01, vns12), axis=1) if vns01.size or vns12.size else np.empty((3, 0), dtype=np.float32)
+
+    m = x012.shape[0] // 2
+    if x02[m] < x012[m]:
+        x_left = x02
+        x_right = x012
+        z_left = z02
+        z_right = z012
+        vns_left = vns02
+        vns_right = vns012
+    else:
+        x_left = x012
+        x_right = x02
+        z_left = z012
+        z_right = z02
+        vns_left = vns012
+        vns_right = vns02
+
+    for idx, y in enumerate(range(y0, y2)):
+        x_l = x_left[idx]
+        x_r = x_right[idx]
+
+        x_start = int(round(x_l))
+        x_end = int(round(x_r))
+
+        z_start = z_left[idx]
+        z_end = z_right[idx]
+        n_start = vns_left[:, idx]
+        n_end = vns_right[:, idx]
+
+        if x_end < x_start:
+            x_start, x_end = x_end, x_start
+            z_start, z_end = z_end, z_start
+            n_start, n_end = n_end, n_start
+
+        x_segment = np.arange(x_start, x_end + 1, dtype=np.float32)
+        y_segment = np.full(x_segment.shape, y, dtype=np.float32)
+        z_segment = np.array(Interpolate(x_start, z_start, x_end + 1, z_end), dtype=np.float32)
+
+        vnx_segment = np.array(Interpolate(x_start, n_start[0], x_end + 1, n_end[0]), dtype=np.float32)
+        vny_segment = np.array(Interpolate(x_start, n_start[1], x_end + 1, n_end[1]), dtype=np.float32)
+        vnz_segment = np.array(Interpolate(x_start, n_start[2], x_end + 1, n_end[2]), dtype=np.float32)
+        vn_segment = _stack(vnx_segment, vny_segment, vnz_segment)
+
+        loc_segment = _stack(x_segment, y_segment, z_segment)
+        if loc_segment.shape[1] == 0:
+            continue
+
+        h_segment = getPhongHs(loc_segment, vn_segment, canva, s)
+
+        for px_idx, x in enumerate(range(x_start, x_end + 1)):
+            b = h_segment[px_idx]
+            shaded_color = (
+                int(color[0] * b),
+                int(color[1] * b),
+                int(color[2] * b)
+            )
+            PutPixel(x=x, y=y, z=z_segment[px_idx], canva=canva, color=shaded_color)
+
 
 def ProjectToCanvas(P:Point, canva:Canva):
     z = P.loc[2]
@@ -253,7 +497,8 @@ def DrawWireframeTriangle(
         canva:Canva, 
         line_color:tuple, 
         filled_color:tuple,
-        shade_type:str
+        shade_type:str,
+        s:float
     ):
     assert(shade_type == "Flat" or shade_type == "Phong"), "Shadaw type must be 'Flat' or 'Phong'."
 
@@ -269,23 +514,27 @@ def DrawWireframeTriangle(
     ):
         return
     if shade_type == "Flat":
-        get_light_for_triangle(tri, canva)
+        get_light_for_triangle(tri, canva, s)
     elif shade_type == "Phong":
         pass # ...
 
-
+    p0 = ProjectToCanvas(tri.points[0], canva)
+    p1 = ProjectToCanvas(tri.points[1], canva)
+    p2 = ProjectToCanvas(tri.points[2], canva)
+    if p0 is None or p1 is None or p2 is None:
+        return
+    
     if shade_type == "Flat":
-        p0 = ProjectToCanvas(tri.points[0], canva)
-        p1 = ProjectToCanvas(tri.points[1], canva)
-        p2 = ProjectToCanvas(tri.points[2], canva)
-        if p0 is None or p1 is None or p2 is None:
-            return
         DrawFlatShadedLine(p0, p1, canva, line_color)
         DrawFlatShadedLine(p1, p2, canva, line_color)
         DrawFlatShadedLine(p2, p0, canva, line_color)
         DrawFlatShadedTriangle(p0, p1, p2, canva, filled_color)
     elif shade_type == "Phong":
-        pass
+        vns = tri.vns
+        DrawPhongShadedLine(p0, p1, vns[0], vns[1], canva, line_color, s)
+        DrawPhongShadedLine(p1, p2, vns[1], vns[2], canva, line_color, s)
+        DrawPhongShadedLine(p2, p0, vns[2], vns[0], canva, line_color, s)
+        DrawPhongShadedTriangle(p0, p1, p2, vns[0], vns[1], vns[2], canva, filled_color, s)
 
 def load_objs(path:str):
     print(f"Loading {path}...")

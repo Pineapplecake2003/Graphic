@@ -73,7 +73,7 @@ class Triangle():
 class ThreeDimensionObject():
     triangles:list
     points:list
-
+    s:float
     def __init__(self, triangles, points):
         self.triangles = triangles
         self.points = points
@@ -82,6 +82,7 @@ class ThreeDimensionObject():
         """
         input rotation: degree
         """
+        # self.s = 10.0
         alpha, beta, gamma = rotation
         a, b, g = np.deg2rad([alpha, beta, gamma])
         r_x = np.array(
@@ -117,6 +118,25 @@ class ThreeDimensionObject():
             transformed_loc = transformed_loc + offset_loc
             p.loc = transformed_loc
             # TODO brightness change
+
+        # if np.isscalar(scale):
+        #     normal_matrix = R
+        # else:
+        #     normal_matrix = R
+
+        for tri in self.triangles:
+            transformed_normals = []
+            for vn in tri.vns:
+                vn_vec = np.asarray(vn, dtype=np.float32)
+                rotated = R @ vn_vec
+                norm = np.linalg.norm(rotated)
+                if norm > 1e-6:
+                    rotated = rotated / norm
+                transformed_normals.append(rotated.astype(np.float32))
+            tri.vns = transformed_normals
+    
+    def set_s(self, s:float):
+        self.s = s
 
 
 
