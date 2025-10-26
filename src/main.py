@@ -34,7 +34,7 @@ def main():
     
     object = load_objs(obj_file)
     object.transform((0, -200, 5015), (0, 225, 45), 1.0)
-    object.set_s(50000)
+    object.set_s(10)
     print("Render with Phong shading.")
     for t in tqdm(object.triangles, ncols=50):
         DrawWireframeTriangle(
