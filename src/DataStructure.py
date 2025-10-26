@@ -1,13 +1,26 @@
 import numpy as np
 class Point():
     loc:np.ndarray
+    world_loc:np.ndarray
     b:float
 
-    def __init__(self, loc, brightness:float):
+    def __init__(self, loc, brightness:float, world_loc=None):
         if isinstance(loc, list):
             self.loc = np.array(loc, dtype=np.float32, copy=True)
         elif isinstance(loc, np.ndarray):
             self.loc = loc.astype(np.float32, copy=True)
+        else:
+            self.loc = np.array(loc, dtype=np.float32, copy=True)
+
+        if world_loc is None:
+            self.world_loc = self.loc.copy()
+        elif isinstance(world_loc, list):
+            self.world_loc = np.array(world_loc, dtype=np.float32, copy=True)
+        elif isinstance(world_loc, np.ndarray):
+            self.world_loc = world_loc.astype(np.float32, copy=True)
+        else:
+            self.world_loc = np.array(world_loc, dtype=np.float32, copy=True)
+
         self.b = brightness
     
     def __str__(self):
@@ -39,11 +52,11 @@ class Canva():
     light_srouce:list
     ambient:float
     s:float
-    WHITE:int
+    BACKGROUND:int
     dpi:int
     def __init__(self, V:tuple, d:int, C:tuple, dpi:int, ambient:float, light_source:list, s=10):
-        self.WHITE = 255
-        self.array = np.full((C[0], C[1], 3), self.WHITE, dtype=np.uint8)
+        self.BACKGROUND = 0
+        self.array = np.full((C[0], C[1], 3), self.BACKGROUND, dtype=np.uint8)
         self.z_inv_buf = np.full((C[0], C[1]), 0, dtype=np.float32)
         self.d = d
         self.C = C
@@ -54,7 +67,7 @@ class Canva():
         self.dpi = dpi
     
     def clear(self):
-        self.array = np.full((self.C[0], self.C[1], 3), self.WHITE, dtype=np.uint8)
+        self.array = np.full((self.C[0], self.C[1], 3), self.BACKGROUND, dtype=np.uint8)
         self.z_inv_buf = np.full((self.C[0], self.C[1]), 0, dtype=np.float32)
 
     def __str__(self):
@@ -77,6 +90,7 @@ class ThreeDimensionObject():
     def __init__(self, triangles, points):
         self.triangles = triangles
         self.points = points
+        self.s = 10
 
     def transform(self, location:tuple, rotation:tuple, scale):
         """

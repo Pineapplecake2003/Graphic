@@ -27,25 +27,25 @@ def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
 
     # Face normal
     n_vector = np.cross(
-        t.points[1].loc - t.points[0].loc,
-        t.points[2].loc - t.points[0].loc
+        t.points[1].world_loc - t.points[0].world_loc,
+        t.points[2].world_loc - t.points[0].world_loc
     )
-    n_vector /= np.linalg.norm(n_vector)
+    n_vector /= np.maximum(np.linalg.norm(n_vector), 1e-6)
 
     # Lighting loop
     for li in canva.light_srouce:
         for p in t.points:
             if li.ltype == "point":
-                l_vector = li.loc - p.loc
+                l_vector = li.loc - p.world_loc
             elif li.ltype == "directional":
                 l_vector = -li.li_dir
-            l_vector /= np.linalg.norm(l_vector)
+            l_vector /= np.maximum(np.linalg.norm(l_vector), 1e-6)
 
-            v_vector = -p.loc
-            v_vector /= np.linalg.norm(v_vector)
+            v_vector = -p.world_loc
+            v_vector /= np.maximum(np.linalg.norm(v_vector), 1e-6)
 
             r_vector = 2 * np.dot(n_vector, l_vector) * n_vector - l_vector
-            r_vector /= np.linalg.norm(r_vector)
+            r_vector /= np.maximum(np.linalg.norm(r_vector), 1e-6)
 
             # Diffuse + Specular
             shooted = max(np.dot(n_vector, l_vector), 0.0)
@@ -203,13 +203,19 @@ def DrawPhongShadedLine(
         vn0:np.ndarray, vn1:np.ndarray, 
         canva:Canva, color:tuple, s:float
     ):
-    points = [Point(P0.loc, P0.b), Point(P1.loc, P1.b)]
+    points = [P0, P1]
+    world_points = [
+        np.asarray(P0.world_loc, dtype=np.float32),
+        np.asarray(P1.world_loc, dtype=np.float32)
+    ]
     vns = [np.array(vn0, dtype=np.float32, copy=True), np.array(vn1, dtype=np.float32, copy=True)]
     if abs(points[1].loc[0] - points[0].loc[0]) > abs(points[1].loc[1] - points[0].loc[1]):
         # Horizontal line
         # Make sure x0 < x1
         if points[0].loc[0] > points[1].loc[0]:
             points[0], points[1] = points[1], points[0]
+            world_points[0], world_points[1] = world_points[1], world_points[0]
+            vns[0], vns[1] = vns[1], vns[0]
         x0 = int(round(points[0].loc[0]))
         x1 = int(round(points[1].loc[0]))
         if x0 == x1:
@@ -217,11 +223,14 @@ def DrawPhongShadedLine(
         xs = range(x0, x1)
         ys = Interpolate(x0, points[0].loc[1], x1, points[1].loc[1])
         zs = Interpolate(x0, points[0].loc[2], x1, points[1].loc[2])
-        locs = np.array([
-            xs,
-            ys, 
-            zs
-        ], dtype=np.float32)
+        sample_count = len(ys)
+        if sample_count == 0:
+            return
+        t = np.linspace(0.0, 1.0, sample_count, endpoint=False, dtype=np.float32)
+        world_locs = (
+            world_points[0].reshape(3, 1) * (1.0 - t.reshape(1, -1)) +
+            world_points[1].reshape(3, 1) * t.reshape(1, -1)
+        )
         vnxs = Interpolate(x0, vns[0][0], x1, vns[1][0])
         vnys = Interpolate(x0, vns[0][1], x1, vns[1][1])
         vnzs = Interpolate(x0, vns[0][2], x1, vns[1][2])
@@ -230,7 +239,7 @@ def DrawPhongShadedLine(
             vnys, 
             vnzs
         ], dtype=np.float32)
-        hs = getPhongHs(locs, vns, canva, s)
+        hs = getPhongHs(world_locs, vns, canva, s)
         for idx, x in enumerate(range(x0, x1)):
             PutPixel(
                 x,
@@ -247,6 +256,8 @@ def DrawPhongShadedLine(
         # Vertical line
         if points[0].loc[1] > points[1].loc[1]:
             points[0], points[1] = points[1], points[0]
+            world_points[0], world_points[1] = world_points[1], world_points[0]
+            vns[0], vns[1] = vns[1], vns[0]
         y0 = int(round(points[0].loc[1]))
         y1 = int(round(points[1].loc[1]))
         if y0 == y1:
@@ -254,11 +265,14 @@ def DrawPhongShadedLine(
         xs = Interpolate(y0, points[0].loc[0], y1, points[1].loc[0])
         ys = range(y0, y1)
         zs = Interpolate(y0, points[0].loc[2], y1, points[1].loc[2])
-        locs = np.array([
-            xs,
-            ys, 
-            zs
-        ], dtype=np.float32)
+        sample_count = len(xs)
+        if sample_count == 0:
+            return
+        t = np.linspace(0.0, 1.0, sample_count, endpoint=False, dtype=np.float32)
+        world_locs = (
+            world_points[0].reshape(3, 1) * (1.0 - t.reshape(1, -1)) +
+            world_points[1].reshape(3, 1) * t.reshape(1, -1)
+        )
         vnxs = Interpolate(y0, vns[0][0], y1, vns[1][0])
         vnys = Interpolate(y0, vns[0][1], y1, vns[1][1])
         vnzs = Interpolate(y0, vns[0][2], y1, vns[1][2])
@@ -267,7 +281,7 @@ def DrawPhongShadedLine(
             vnys, 
             vnzs
         ], dtype=np.float32)
-        hs = getPhongHs(locs, vns, canva, s)
+        hs = getPhongHs(world_locs, vns, canva, s)
         for idx, y in enumerate(range(y0, y1)):
             PutPixel(
                 int(round(xs[idx])),
@@ -423,6 +437,21 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
     vns02 = _stack(vnxs02, vnys02, vnzs02)
     vns012 = np.concatenate((vns01, vns12), axis=1) if vns01.size or vns12.size else np.empty((3, 0), dtype=np.float32)
 
+    worldx01 = _span(y0, points[0].world_loc[0], y1, points[1].world_loc[0])
+    worldy01 = _span(y0, points[0].world_loc[1], y1, points[1].world_loc[1])
+    worldz01 = _span(y0, points[0].world_loc[2], y1, points[1].world_loc[2])
+    worldx12 = _span(y1, points[1].world_loc[0], y2, points[2].world_loc[0])
+    worldy12 = _span(y1, points[1].world_loc[1], y2, points[2].world_loc[1])
+    worldz12 = _span(y1, points[1].world_loc[2], y2, points[2].world_loc[2])
+    worldx02 = _span(y0, points[0].world_loc[0], y2, points[2].world_loc[0])
+    worldy02 = _span(y0, points[0].world_loc[1], y2, points[2].world_loc[1])
+    worldz02 = _span(y0, points[0].world_loc[2], y2, points[2].world_loc[2])
+
+    world01 = _stack(worldx01, worldy01, worldz01)
+    world12 = _stack(worldx12, worldy12, worldz12)
+    world02 = _stack(worldx02, worldy02, worldz02)
+    world012 = np.concatenate((world01, world12), axis=1) if world01.size or world12.size else np.empty((3, 0), dtype=np.float32)
+
     m = x012.shape[0] // 2
     if x02[m] < x012[m]:
         x_left = x02
@@ -431,6 +460,8 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
         z_right = z012
         vns_left = vns02
         vns_right = vns012
+        world_left = world02
+        world_right = world012
     else:
         x_left = x012
         x_right = x02
@@ -438,6 +469,8 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
         z_right = z02
         vns_left = vns012
         vns_right = vns02
+        world_left = world012
+        world_right = world02
 
     for idx, y in enumerate(range(y0, y2)):
         x_l = x_left[idx]
@@ -450,11 +483,14 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
         z_end = z_right[idx]
         n_start = vns_left[:, idx]
         n_end = vns_right[:, idx]
+        world_start = world_left[:, idx]
+        world_end = world_right[:, idx]
 
         if x_end < x_start:
             x_start, x_end = x_end, x_start
             z_start, z_end = z_end, z_start
             n_start, n_end = n_end, n_start
+            world_start, world_end = world_end, world_start
 
         x_segment = np.arange(x_start, x_end + 1, dtype=np.float32)
         y_segment = np.full(x_segment.shape, y, dtype=np.float32)
@@ -465,11 +501,14 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
         vnz_segment = np.array(Interpolate(x_start, n_start[2], x_end + 1, n_end[2]), dtype=np.float32)
         vn_segment = _stack(vnx_segment, vny_segment, vnz_segment)
 
-        loc_segment = _stack(x_segment, y_segment, z_segment)
-        if loc_segment.shape[1] == 0:
+        worldx_segment = np.array(Interpolate(x_start, world_start[0], x_end + 1, world_end[0]), dtype=np.float32)
+        worldy_segment = np.array(Interpolate(x_start, world_start[1], x_end + 1, world_end[1]), dtype=np.float32)
+        worldz_segment = np.array(Interpolate(x_start, world_start[2], x_end + 1, world_end[2]), dtype=np.float32)
+        world_segment = _stack(worldx_segment, worldy_segment, worldz_segment)
+        if world_segment.shape[1] == 0:
             continue
 
-        h_segment = getPhongHs(loc_segment, vn_segment, canva, s)
+        h_segment = getPhongHs(world_segment, vn_segment, canva, s)
 
         for px_idx, x in enumerate(range(x_start, x_end + 1)):
             b = h_segment[px_idx]
@@ -489,7 +528,7 @@ def ProjectToCanvas(P:Point, canva:Canva):
     x = P.loc[0] * scale * canva.dpi
     y = P.loc[1] * scale * canva.dpi
     projected_loc = np.array([x, y, z], dtype=np.float32)
-    projected_p = Point(projected_loc, P.b)
+    projected_p = Point(projected_loc, P.b, world_loc=P.world_loc)
     return projected_p
 
 def DrawWireframeTriangle(
