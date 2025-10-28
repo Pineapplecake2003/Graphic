@@ -10,18 +10,18 @@ import DataStructure
 def main():
     obj_file = "./models/Rushia.obj"
 
-    dpi = 30
-    canva_height = 400
-    canva_width = 400
+    dpi = 3
+    canva_height = 300
+    canva_width = 300
 
     canva_height_px = canva_height * dpi
     canva_width_px = canva_width * dpi
 
     canva_d = 1000
 
-    ambient = 0.2
-    light_src0 = DataStructure.Light([300, -500, 4800], 0.7, "point")
-    light_src1 = DataStructure.Light([1, 1, 1], 0.5, "directional")
+    ambient = 0.1
+    light_src0 = DataStructure.Light([600, 800, 1500], 0.7, "point")
+    light_src1 = DataStructure.Light([1, 1, 0], 0.5, "directional")
 
     picture = Canva(
         (canva_height, canva_width),
@@ -33,23 +33,8 @@ def main():
     )
     
     object = load_objs(obj_file)
-    object.transform((0, -200, 5015), (0, 225, 30), 1.0)
-    object.set_s(100000)
-    print("Render with Phong shading.")
-    for t in tqdm(object.triangles, ncols=50):
-        DrawWireframeTriangle(
-            t,
-            picture, 
-            (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3),
-            "Phong",
-            s=object.s,
-        )
-    img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./images/result_Phong.png")
-    
-    picture.clear()
-
+    object.transform((-200, -1250, 1800), (25, 160, 0), 1.5)
+    object.set_s(5)
     print("Render with Flat shading.")
     for t in tqdm(object.triangles, ncols=50):
         DrawWireframeTriangle(
@@ -62,6 +47,36 @@ def main():
         )
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result_Flat.png")
+    
+    picture.clear()
+
+    print("Render with Phong shading.")
+    for t in tqdm(object.triangles, ncols=50):
+        DrawWireframeTriangle(
+            t,
+            picture, 
+            (0x4E, 0xFE, 0xB3), 
+            (0x4E, 0xFE, 0xB3),
+            "Phong",
+            s=object.s,
+        )
+    img = Image.fromarray(picture.array, mode="RGB")
+    img.save("./images/result_Phong.png")
+
+    picture.clear()
+
+    print("Render vertices and lines only.")
+    for t in tqdm(object.triangles, ncols=50):
+        DrawWireframeTriangle(
+            t,
+            picture, 
+            (0xFF, 0xFF, 0xFF), 
+            (0xFF, 0xFF, 0xFF),
+            "None",
+            s=object.s,
+        )
+    img = Image.fromarray(picture.array, mode="RGB")
+    img.save("./images/result_Vertices_and_lines.png")
 
 if __name__ == "__main__":
     main()

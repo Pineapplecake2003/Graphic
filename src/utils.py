@@ -4,6 +4,8 @@ import copy
 import math
 from tqdm import tqdm
 def PutPixel(x:int, y:int, z:float, canva:Canva, color:tuple):
+    if z < canva.d:
+        return
     canva_height = canva.array.shape[0] - 1
     canva_weight = canva.array.shape[1] - 1
     x_idx = x + canva_weight // 2
@@ -34,7 +36,7 @@ def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
 
     # Lighting loop
     for li in canva.light_srouce:
-        for p in t.points:
+        for i, p in enumerate(t.points):
             if li.ltype == "point":
                 l_vector = li.loc - p.world_loc
             elif li.ltype == "directional":
@@ -51,7 +53,7 @@ def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
             shooted = max(np.dot(n_vector, l_vector), 0.0)
             reflected = max(np.dot(r_vector, v_vector), 0.0) ** s
 
-            p.b += li.b * (shooted + reflected)
+            t.points[i].b += li.b * (shooted + reflected)
 
 def Interpolate(i0, d0, i1, d1):
     if(i0 == i1):
@@ -539,7 +541,7 @@ def DrawWireframeTriangle(
         shade_type:str,
         s:float
     ):
-    assert(shade_type == "Flat" or shade_type == "Phong"), "Shadaw type must be 'Flat' or 'Phong'."
+    assert(shade_type == "Flat" or shade_type == "Phong" or shade_type == "None"), "Shadaw type must be 'Flat' or 'Phong'."
 
     minus_p0_loc = -tri.points[0].loc
     minus_p1_loc = -tri.points[1].loc
@@ -574,6 +576,11 @@ def DrawWireframeTriangle(
         DrawPhongShadedLine(p1, p2, vns[1], vns[2], canva, line_color, s)
         DrawPhongShadedLine(p2, p0, vns[2], vns[0], canva, line_color, s)
         DrawPhongShadedTriangle(p0, p1, p2, vns[0], vns[1], vns[2], canva, filled_color, s)
+    elif shade_type == "None":
+        vns = tri.vns
+        DrawPhongShadedLine(p0, p1, vns[0], vns[1], canva, line_color, s)
+        DrawPhongShadedLine(p1, p2, vns[1], vns[2], canva, line_color, s)
+        DrawPhongShadedLine(p2, p0, vns[2], vns[0], canva, line_color, s)
 
 def load_objs(path:str):
     print(f"Loading {path}...")

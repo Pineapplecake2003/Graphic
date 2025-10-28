@@ -131,6 +131,7 @@ class ThreeDimensionObject():
             transformed_loc = R @ transformed_loc
             transformed_loc = transformed_loc + offset_loc
             p.loc = transformed_loc
+            p.world_loc = transformed_loc.copy()
             # TODO brightness change
 
         # if np.isscalar(scale):
