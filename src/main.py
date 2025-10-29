@@ -8,9 +8,9 @@ import DataStructure
 # import pygame
 
 def main():
-    obj_file = "./models/Rushia.obj"
+    obj_file = "./models/Cube.obj"
 
-    dpi = 3
+    dpi = 1
     canva_height = 300
     canva_width = 300
 
@@ -33,50 +33,22 @@ def main():
     )
     
     object = load_objs(obj_file)
-    object.transform((-200, -1250, 1800), (25, 160, 0), 1.5)
+    object.transform((0, 0, 1000), (25, 160, 0), 100)
     object.set_s(5)
     print("Render with Flat shading.")
     for t in tqdm(object.triangles, ncols=50):
+    #for t in object.triangles:
         DrawWireframeTriangle(
+            object,
             t,
             picture, 
-            (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3),
+            (0xFF, 0xFF, 0xFF), 
+            (0xFF, 0xFF, 0xFF),
             "Flat",
             s=object.s,
         )
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result_Flat.png")
-    
-    picture.clear()
-
-    print("Render with Phong shading.")
-    for t in tqdm(object.triangles, ncols=50):
-        DrawWireframeTriangle(
-            t,
-            picture, 
-            (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3),
-            "Phong",
-            s=object.s,
-        )
-    img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./images/result_Phong.png")
-
-    picture.clear()
-
-    print("Render vertices and lines only.")
-    for t in tqdm(object.triangles, ncols=50):
-        DrawWireframeTriangle(
-            t,
-            picture, 
-            (0xFF, 0xFF, 0xFF), 
-            (0xFF, 0xFF, 0xFF),
-            "None",
-            s=object.s,
-        )
-    img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./images/result_Vertices_and_lines.png")
 
 if __name__ == "__main__":
     main()

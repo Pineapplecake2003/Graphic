@@ -1,25 +1,19 @@
 import numpy as np
+import copy
 class Point():
-    loc:np.ndarray
+    canva_loc:np.ndarray
     world_loc:np.ndarray
     b:float
 
-    def __init__(self, loc, brightness:float, world_loc=None):
-        if isinstance(loc, list):
-            self.loc = np.array(loc, dtype=np.float32, copy=True)
-        elif isinstance(loc, np.ndarray):
-            self.loc = loc.astype(np.float32, copy=True)
-        else:
-            self.loc = np.array(loc, dtype=np.float32, copy=True)
-
-        if world_loc is None:
-            self.world_loc = self.loc.copy()
-        elif isinstance(world_loc, list):
+    def __init__(self, world_loc, brightness:float):
+        if isinstance(world_loc, list):
             self.world_loc = np.array(world_loc, dtype=np.float32, copy=True)
         elif isinstance(world_loc, np.ndarray):
             self.world_loc = world_loc.astype(np.float32, copy=True)
         else:
             self.world_loc = np.array(world_loc, dtype=np.float32, copy=True)
+
+        self.canva_loc = np.array([0., 0., 0.])
 
         self.b = brightness
     
@@ -74,81 +68,100 @@ class Canva():
         return f"V: {self.V}\nd: {self.d}\nC: {self.C}"
 
 class Triangle():
-    points:list
-    vns:list
-    def __init__(self, points, vts, vns):
-        self.points = points
-        self.vns = vns
+    points_idx:list
+    vns_idx:list
+    def __init__(self, points_idx, vts_idx, vns_idx):
+        self.points_idx = points_idx
+        self.vns_idx = vns_idx
 
     def __str__(self):
-        return f"{str(self.points[0])}, {str(self.points[1])}, {str(self.points[2])}"
+        return f"points index: {self.points_idx}\n vns index: {self.vns_idx}"
 
 class ThreeDimensionObject():
+    """
+    triangles: list of triangles
+    points_original: nparray (3, N)
+    vns_original: nparray (3, N)
+    """
     triangles:list
-    points:list
+    points_original:list
+    points_transformed:list
+    vns_original:list
+    vns_transformed:list
     s:float
-    def __init__(self, triangles, points):
-        self.triangles = triangles
-        self.points = points
+    def __init__(self, triangles:list, points:list, vns:list):
+        self.triangles= triangles
+        
+        self.points_original = points
+        self.points_transformed = copy.deepcopy(self.points_original)
+
+        self.vns_original = vns
+        self.vns_transformed = copy.deepcopy(self.vns_original)
+
         self.s = 10
 
     def transform(self, location:tuple, rotation:tuple, scale):
         """
         input rotation: degree
         """
-        # self.s = 10.0
         alpha, beta, gamma = rotation
         a, b, g = np.deg2rad([alpha, beta, gamma])
         r_x = np.array(
             [
-                [1, 0, 0],
-                [0, np.cos(a), -np.sin(a)],
-                [0, np.sin(a), np.cos(a)]
-            ],
-            dtype=np.float32
+                [1., 0.         , 0.        ,0.],
+                [0., np.cos(a)  , -np.sin(a),0.],
+                [0., np.sin(a)  , np.cos(a) ,0.],
+                [0., 0.         , 0.        ,1.]
+            ]
         )
         r_y = np.array(
             [
-                [np.cos(b), 0, np.sin(b)],
-                [0, 1, 0],
-                [-np.sin(b), 0, np.cos(b)]
-            ],
-            dtype=np.float32
+                [np.cos(b)  , 0., np.sin(b) ,0.],
+                [0.         , 1., 0.        ,0.],
+                [-np.sin(b) , 0., np.cos(b) ,0.],
+                [0.         , 0., 0.        ,1.]
+            ]
         )
         r_z = np.array(
             [
-                [np.cos(g), -np.sin(g), 0],
-                [np.sin(g), np.cos(g), 0],
-                [0, 0, 1]
-            ],
-            dtype=np.float32
+                [np.cos(g)  , -np.sin(g)    , 0., 0.],
+                [np.sin(g)  , np.cos(g)     , 0., 0.],
+                [0.         , 0.            , 1., 0.],
+                [0.         , 0.            , 0., 1.]
+            ]
         )
-        R = r_z @ r_y @ r_x
-        offset_loc = np.array(location, dtype=float)
-        for p in self.points:
-            original_loc = p.loc
-            transformed_loc = scale * original_loc
-            transformed_loc = R @ transformed_loc
-            transformed_loc = transformed_loc + offset_loc
-            p.loc = transformed_loc
-            p.world_loc = transformed_loc.copy()
-            # TODO brightness change
-
-        # if np.isscalar(scale):
-        #     normal_matrix = R
-        # else:
-        #     normal_matrix = R
-
-        for tri in self.triangles:
-            transformed_normals = []
-            for vn in tri.vns:
-                vn_vec = np.asarray(vn, dtype=np.float32)
-                rotated = R @ vn_vec
-                norm = np.linalg.norm(rotated)
-                if norm > 1e-6:
-                    rotated = rotated / norm
-                transformed_normals.append(rotated.astype(np.float32))
-            tri.vns = transformed_normals
+        scale_a = np.array(
+            [
+                [scale, 0.    , 0.    , 0.],
+                [0.   , scale , 0.    , 0.],
+                [0.   , 0.    , scale , 0.],
+                [0.   , 0.    , 0.    , 1.]
+            ]
+        )
+        offset_a = np.array(
+            [
+                [1., 0., 0., location[0]],
+                [0., 1., 0., location[1]],
+                [0., 0., 1., location[2]],
+                [0., 0., 0., 1.         ]
+            ]
+        )
+        transform_mat = offset_a @ r_z @ r_y @ r_x @ scale_a
+        
+        for p in self.points_transformed:
+            original_loc = original_loc = np.append(p.world_loc, 1.0)
+            transformed_loc = transform_mat @ original_loc
+            p.world_loc = transformed_loc[:3].copy()
+        
+        R_only = r_z @ r_y @ r_x
+        for i, vn in enumerate(self.vns_transformed):
+            rotated_vn = R_only @ np.append(vn, 0.0) 
+            norm = np.linalg.norm(rotated_vn)
+            if norm > 1e-6:
+                rotated_vn = rotated_vn[:3] / norm
+            else:
+                rotated_vn = rotated_vn[:3]
+            self.vns_transformed[i] = rotated_vn
     
     def set_s(self, s:float):
         self.s = s

@@ -522,65 +522,62 @@ def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple,
             PutPixel(x=x, y=y, z=z_segment[px_idx], canva=canva, color=shaded_color)
 
 
-def ProjectToCanvas(P:Point, canva:Canva):
-    z = P.loc[2]
-    if z <= 0:
-        return None
-    scale = canva.d / z
-    x = P.loc[0] * scale * canva.dpi
-    y = P.loc[1] * scale * canva.dpi
-    projected_loc = np.array([x, y, z], dtype=np.float32)
-    projected_p = Point(projected_loc, P.b, world_loc=P.world_loc)
-    return projected_p
+def ProjectToCanvas(obj:ThreeDimensionObject, canva:Canva):
+    P_world = np.array([p.world_loc for p in obj.points_transformed])
+    P_world_h = np.hstack([P_world, np.ones((P_world.shape[0],1))])
+    proj_mat = np.array([
+        [canva.d*canva.dpi  , 0.                , 0., 0.],
+        [0.                 , canva.d*canva.dpi , 0., 0.],
+        [0.                 , 0.                , 1., 0.]
+    ])
+    P_canvas = (proj_mat @ P_world_h.T).T
+    P_canvas[:,0:2] /= P_canvas[:,2:3]
+    
+    for i, p in enumerate(obj.points_transformed):
+        p.canva_loc = P_canvas[i].copy()
 
 def DrawWireframeTriangle(
+        obj:ThreeDimensionObject,
         tri:Triangle,
-        canva:Canva, 
+        canva:Canva,
         line_color:tuple, 
         filled_color:tuple,
         shade_type:str,
         s:float
     ):
     assert(shade_type == "Flat" or shade_type == "Phong" or shade_type == "None"), "Shadaw type must be 'Flat' or 'Phong'."
+    ProjectToCanvas(obj, canva)
 
-    minus_p0_loc = -tri.points[0].loc
-    minus_p1_loc = -tri.points[1].loc
-    minus_p2_loc = -tri.points[2].loc
-    n_vector = np.cross(tri.points[1].loc - tri.points[0].loc,
-                        tri.points[2].loc - tri.points[0].loc)
-    if (
-        np.dot(n_vector, minus_p0_loc) <= 0 or
-        np.dot(n_vector, minus_p1_loc) <= 0 or
-        np.dot(n_vector, minus_p2_loc) <= 0
-    ):
-        return
-    if shade_type == "Flat":
-        get_light_for_triangle(tri, canva, s)
-    elif shade_type == "Phong":
-        pass # ...
+    points_canva_loc = np.array(
+        [
+            obj.points_transformed[tri.points_idx[0]].canva_loc,
+            obj.points_transformed[tri.points_idx[1]].canva_loc,
+            obj.points_transformed[tri.points_idx[2]].canva_loc
+        ]
+    ) # (N, 3)
 
-    p0 = ProjectToCanvas(tri.points[0], canva)
-    p1 = ProjectToCanvas(tri.points[1], canva)
-    p2 = ProjectToCanvas(tri.points[2], canva)
-    if p0 is None or p1 is None or p2 is None:
-        return
-    
-    if shade_type == "Flat":
-        DrawFlatShadedLine(p0, p1, canva, line_color)
-        DrawFlatShadedLine(p1, p2, canva, line_color)
-        DrawFlatShadedLine(p2, p0, canva, line_color)
-        DrawFlatShadedTriangle(p0, p1, p2, canva, filled_color)
-    elif shade_type == "Phong":
-        vns = tri.vns
-        DrawPhongShadedLine(p0, p1, vns[0], vns[1], canva, line_color, s)
-        DrawPhongShadedLine(p1, p2, vns[1], vns[2], canva, line_color, s)
-        DrawPhongShadedLine(p2, p0, vns[2], vns[0], canva, line_color, s)
-        DrawPhongShadedTriangle(p0, p1, p2, vns[0], vns[1], vns[2], canva, filled_color, s)
-    elif shade_type == "None":
-        vns = tri.vns
-        DrawPhongShadedLine(p0, p1, vns[0], vns[1], canva, line_color, s)
-        DrawPhongShadedLine(p1, p2, vns[1], vns[2], canva, line_color, s)
-        DrawPhongShadedLine(p2, p0, vns[2], vns[0], canva, line_color, s)
+    min_xy = np.min(points_canva_loc[:, :2], axis=0).astype(np.int32)  # [min_x, min_y]
+    max_xy = np.max(points_canva_loc[:, :2], axis=0).astype(np.int32)  # [max_x, max_y]
+
+    A, B, C = points_canva_loc[:, :2]
+    zA, zB, zC = points_canva_loc[:, 2]
+
+    denom = (B[1]-C[1])*(A[0]-C[0]) + (C[0]-B[0])*(A[1]-C[1])
+    for x in range(min_xy[0], max_xy[0]):
+        for y in range(min_xy[1], max_xy[1]):
+            P = np.array([x, y], dtype=np.float32)
+            cross1 = np.cross(B - A, P - A)
+            cross2 = np.cross(C - B, P - B)
+            cross3 = np.cross(A - C, P - C)
+
+            if (cross1 >= 0 and cross2 >= 0 and cross3 >= 0) or (cross1 <= 0 and cross2 <= 0 and cross3 <= 0):
+                alpha = ((B[1]-C[1])*(P[0]-C[0]) + (C[0]-B[0])*(P[1]-C[1])) / denom
+                beta  = ((C[1]-A[1])*(P[0]-C[0]) + (A[0]-C[0])*(P[1]-C[1])) / denom
+                gamma = 1.0 - alpha - beta
+
+                z = alpha*zA + beta*zB + gamma*zC
+                PutPixel(x, y, z, canva, filled_color)
+
 
 def load_objs(path:str):
     print(f"Loading {path}...")
@@ -595,13 +592,28 @@ def load_objs(path:str):
             splited = line.split(' ')
             if '' in splited:
                 splited.remove('')
-            point = Point([float(splited[i]) for i in range(1, 4)], 1.0)
+            point = Point(
+                world_loc=np.array(
+                    [
+                        float(splited[1]), 
+                        float(splited[2]), 
+                        float(splited[3])
+                    ]
+                ),
+                brightness=1.0
+            )
             points.append(point)
         elif line.startswith("vn "):
             splited = line.split(' ')
             if '' in splited:
                 splited.remove('')
-            vn = np.array([float(splited[i]) for i in range(1, 4)], np.float32)
+            vn = np.array(
+                [
+                    float(splited[1]), 
+                    float(splited[2]), 
+                    float(splited[3])
+                ]
+            )
             vns.append(vn)
         elif line.startswith("f "):
             splited = line.split(' ')
@@ -614,18 +626,21 @@ def load_objs(path:str):
                 point_infos.append(s.split('/'))
             tri = Triangle(
                 [
-                    points[int(point_infos[0][0]) - 1], 
-                    points[int(point_infos[1][0]) - 1], 
-                    points[int(point_infos[2][0]) - 1]
+                    int(point_infos[0][0]) - 1,
+                    int(point_infos[1][0]) - 1,
+                    int(point_infos[2][0]) - 1
                 ],
                 [],# Not support vt yet
                 [
-                    vns[int(point_infos[0][2]) - 1], 
-                    vns[int(point_infos[1][2]) - 1], 
-                    vns[int(point_infos[2][2]) - 1]
+                    [0.,0.,0.],
+                    [0.,0.,0.],
+                    [0.,0.,0.]
+                    # int(point_infos[0][2]) - 1,
+                    # int(point_infos[1][2]) - 1,
+                    # int(point_infos[2][2]) - 1
                 ]
             )
             tris.append(tri)
     print(f"Number of triangles: {len(tris)}")
-    obj = ThreeDimensionObject(tris, points)
+    obj = ThreeDimensionObject(triangles=tris, points=points, vns=vns)
     return obj
