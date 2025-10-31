@@ -37,6 +37,7 @@ def main():
     object.set_s(5)
     print("Render with Flat shading.")
     for t in tqdm(object.triangles, ncols=50):
+    #for t in object.triangles:
         DrawWireframeTriangle(
             t,
             picture, 
@@ -49,34 +50,34 @@ def main():
     img.save("./images/result_Flat.png")
     
     picture.clear()
-
-    print("Render with Phong shading.")
-    for t in tqdm(object.triangles, ncols=50):
-        DrawWireframeTriangle(
-            t,
-            picture, 
-            (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3),
-            "Phong",
-            s=object.s,
-        )
-    img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./images/result_Phong.png")
-
-    picture.clear()
-
-    print("Render vertices and lines only.")
-    for t in tqdm(object.triangles, ncols=50):
-        DrawWireframeTriangle(
-            t,
-            picture, 
-            (0xFF, 0xFF, 0xFF), 
-            (0xFF, 0xFF, 0xFF),
-            "None",
-            s=object.s,
-        )
-    img = Image.fromarray(picture.array, mode="RGB")
-    img.save("./images/result_Vertices_and_lines.png")
+# 
+    # print("Render with Phong shading.")
+    # for t in tqdm(object.triangles, ncols=50):
+    #     DrawWireframeTriangle(
+    #         t,
+    #         picture, 
+    #         (0x4E, 0xFE, 0xB3), 
+    #         (0x4E, 0xFE, 0xB3),
+    #         "Phong",
+    #         s=object.s,
+    #     )
+    # img = Image.fromarray(picture.array, mode="RGB")
+    # img.save("./images/result_Phong.png")
+# 
+    # picture.clear()
+# 
+    # print("Render vertices and lines only.")
+    # for t in tqdm(object.triangles, ncols=50):
+    #     DrawWireframeTriangle(
+    #         t,
+    #         picture, 
+    #         (0xFF, 0xFF, 0xFF), 
+    #         (0xFF, 0xFF, 0xFF),
+    #         "None",
+    #         s=object.s,
+    #     )
+    # img = Image.fromarray(picture.array, mode="RGB")
+    # img.save("./images/result_Vertices_and_lines.png")
 
 if __name__ == "__main__":
     main()

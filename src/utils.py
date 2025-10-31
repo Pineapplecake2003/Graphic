@@ -297,6 +297,23 @@ def DrawPhongShadedLine(
                 )
             )
 
+def toInt(val):
+    #return math.floor(val)
+    if val > 0:
+        return math.floor(val)
+    else:
+        return math.ceil(val)
+
+def update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v):
+    toP1_p_return = copy.deepcopy(toP1_p)
+    toP2_p_return = copy.deepcopy(toP2_p)
+    toP1_p_return.loc += toP1_v
+    toP2_p_return.loc += toP2_v
+    toP1_p_return.b += toB1_v[1]
+    toP2_p_return.b += toB2_v[1]
+
+    return (toP1_p_return, toP2_p_return)
+
 def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
 
@@ -304,80 +321,103 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
         return
     
     # Sort points depended on y
-    if(points[1].loc[1] < points[0].loc[1]):
+    # sort to
+    #        0
+    #       /|
+    #      / |
+    #     1  |
+    #      \ |
+    #       \|
+    #        2
+    if(points[1].loc[1] > points[0].loc[1]):
         temp = points[1]
         points[1] = points[0]
         points[0] = temp
     
-    if(points[2].loc[1] < points[0].loc[1]):
+    if(points[2].loc[1] > points[0].loc[1]):
         temp = points[2]
         points[2] = points[0]
         points[0] = temp
     
-    if(points[2].loc[1] < points[1].loc[1]):
+    if(points[2].loc[1] > points[1].loc[1]):
         temp = points[2]
         points[2] = points[1]
         points[1] = temp
     
-    y0 = int(round(points[0].loc[1]))
-    y1 = int(round(points[1].loc[1]))
-    y2 = int(round(points[2].loc[1]))
+    # y based
+    points[0].loc[1] = toInt(points[0].loc[1])
+    points[1].loc[1] = toInt(points[1].loc[1])
+    points[2].loc[1] = toInt(points[2].loc[1])
 
-    x01 = Interpolate(y0, points[0].loc[0], y1, points[1].loc[0])
-    x12 = Interpolate(y1, points[1].loc[0], y2, points[2].loc[0])
-    x02 = Interpolate(y0, points[0].loc[0], y2, points[2].loc[0])
-    if len(x02) <= 1:
-        return
-    x012 = x01
-    x012.extend(x12)
-
-    h01 = Interpolate(y0, points[0].b, y1, points[1].b)
-    h12 = Interpolate(y1, points[1].b, y2, points[2].b)
-    h02 = Interpolate(y0, points[0].b, y2, points[2].b)
-    h012 = h01
-    h012.extend(h12)
-
-
-    z01 = Interpolate(y0, points[0].loc[2], y1, points[1].loc[2])
-    z12 = Interpolate(y1, points[1].loc[2], y2, points[2].loc[2])
-    z02 = Interpolate(y0, points[0].loc[2], y2, points[2].loc[2])
-    z012 = z01
-    z012.extend(z12)
-
-    m = math.floor(len(x012) / 2)
-    if(x02[m] < x012[m]):
-        x_left = x02
-        x_right = x012
-        h_left = h02
-        h_right = h012
-        z_left = z02
-        z_right = z012
+    if points[0].loc[1] != points[1].loc[1]:
+        toP1_p = copy.deepcopy(points[0])
+        toP2_p = copy.deepcopy(points[0])
     else:
-        x_left = x012
-        x_right = x02
-        h_left = h012
-        h_right = h02
-        z_left = z012
-        z_right = z02
-    
-    for y in range(y0, y2):
-        x_l = x_left[y - y0]
-        x_r = x_right[y - y0]
-        x_start = int(round(x_l))
-        x_end = int(round(x_r))
-        if x_end < x_start:
-            x_start, x_end = x_end, x_start
-        h_segment = Interpolate(x_start, h_left[y - y0], x_end + 1, h_right[y - y0])
-        z_segment = Interpolate(x_start, z_left[y - y0], x_end + 1, z_right[y - y0])
-        for x in range(x_start, x_end + 1):
-            b = h_segment[x - x_start]
-            shaded_color = (
-                int(color[0] * b), 
-                int(color[1] * b), 
-                int(color[2] * b)
-            )
-            PutPixel(x=x, y=y, z=z_segment[x - x_start], canva=canva, color=shaded_color)
+        toP1_p = copy.deepcopy(points[1])
+        toP2_p = copy.deepcopy(points[0])
 
+    toP1_v_U = points[1].loc - points[0].loc
+    toP1_v_U = toP1_v_U / abs(toP1_v_U[1]) if not np.isclose(toP1_v_U[1], 0.) else toP1_v_U
+    toP2_v_U = points[2].loc - points[0].loc
+    toP2_v_U = toP2_v_U / abs(toP2_v_U[1]) if not np.isclose(toP2_v_U[1], 0.) else toP2_v_U
+    
+    toB1_v_U = np.array([points[1].loc[1] - points[0].loc[1], points[1].b - points[0].b])
+    toB1_v_U = toB1_v_U / abs(toB1_v_U[0]) if not np.isclose(toB1_v_U[0], 0.) else toB1_v_U
+    toB2_v_U = np.array([points[2].loc[1] - points[0].loc[1], points[2].b - points[0].b])
+    toB2_v_U = toB2_v_U / abs(toB2_v_U[0]) if not np.isclose(toB2_v_U[0], 0.) else toB2_v_U
+
+    toP1_v_D = points[2].loc - points[1].loc
+    toP1_v_D = toP1_v_D / abs(toP1_v_D[1]) if not np.isclose(toP1_v_D[1], 0.) else toP1_v_D
+    toP2_v_D = points[2].loc - points[0].loc
+    toP2_v_D = toP2_v_D / abs(toP2_v_D[1]) if not np.isclose(toP2_v_D[1], 0.) else toP2_v_D
+    
+    toB1_v_D = np.array([points[2].loc[1] - points[1].loc[1], points[2].b - points[1].b])
+    toB1_v_D = toB1_v_D / abs(toB1_v_D[0]) if not np.isclose(toB1_v_D[0], 0.) else toB1_v_D
+    toB2_v_D = np.array([points[2].loc[1] - points[0].loc[1], points[2].b - points[0].b])
+    toB2_v_D = toB2_v_D / abs(toB2_v_D[0]) if not np.isclose(toB2_v_D[0], 0.) else toB2_v_D
+    
+    while(toP1_p.loc[1] > points[2].loc[1]):
+        if toP1_p.loc[0] > toP2_p.loc[0]:
+            left_p, right_p = toP2_p, toP1_p
+        else:
+            left_p, right_p = toP1_p, toP2_p
+        
+        # [x, b] ==> brightness per x
+        b_x_dir_v = np.array([right_p.loc[0] - left_p.loc[0], right_p.b - left_p.b])
+        b_x_dir_v = b_x_dir_v / abs(b_x_dir_v[0]) if abs(b_x_dir_v[0]) > 1. else b_x_dir_v
+        b_px = left_p.b
+        z_v = np.array([right_p.loc[0] - left_p.loc[0], right_p.loc[2] - left_p.loc[2]])
+        z_v = z_v / abs(z_v[0]) if abs(z_v[0]) > 1. else z_v
+        z_px = left_p.loc[2]
+        for x in range(toInt(left_p.loc[0]), toInt(right_p.loc[0])+1):
+            draw_color = list(color)
+            draw_color[0] = color[0] * b_px
+            draw_color[1] = color[1] * b_px
+            draw_color[2] = color[2] * b_px
+            PutPixel(x, toInt(left_p.loc[1]), z_px, canva, draw_color)
+            b_px += b_x_dir_v[1]
+            z_px += z_v[1]
+
+        if toP1_p.loc[1] > points[1].loc[1]:
+            # Above P1
+            #print("U")
+            toP1_v = toP1_v_U
+            toP2_v = toP2_v_U
+            
+            toB1_v = toB1_v_U
+            toB2_v = toB2_v_U
+        else:
+            # below P1
+            #print("D")
+            toP1_v = toP1_v_D
+            toP2_v = toP2_v_D
+            
+            toB1_v = toB1_v_D
+            toB2_v = toB2_v_D
+        toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v)
+
+
+        
 def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple, s:float):
     vertices = [
         (p0, np.asarray(vn0, dtype=np.float32)),
@@ -566,9 +606,9 @@ def DrawWireframeTriangle(
         return
     
     if shade_type == "Flat":
-        DrawFlatShadedLine(p0, p1, canva, line_color)
-        DrawFlatShadedLine(p1, p2, canva, line_color)
-        DrawFlatShadedLine(p2, p0, canva, line_color)
+        # DrawFlatShadedLine(p0, p1, canva, line_color)
+        # DrawFlatShadedLine(p1, p2, canva, line_color)
+        # DrawFlatShadedLine(p2, p0, canva, line_color)
         DrawFlatShadedTriangle(p0, p1, p2, canva, filled_color)
     elif shade_type == "Phong":
         vns = tri.vns
