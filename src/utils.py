@@ -353,8 +353,12 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
         toP1_p = copy.deepcopy(points[0])
         toP2_p = copy.deepcopy(points[0])
     else:
-        toP1_p = copy.deepcopy(points[1])
-        toP2_p = copy.deepcopy(points[0])
+        toP1_p = copy.deepcopy(points[1]) # 0 ________1          1 ________0    
+        toP2_p = copy.deepcopy(points[0]) #   \      /             \      /    
+                                          #    \    /               \    /    
+                                          #     \  /                 \  /    
+                                          #      \/                   \/
+                                          #       2         or         2        
 
     toP1_v_U = points[1].loc - points[0].loc
     toP1_v_U = toP1_v_U / abs(toP1_v_U[1]) if not np.isclose(toP1_v_U[1], 0.) else toP1_v_U
