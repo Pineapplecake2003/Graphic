@@ -10,6 +10,11 @@ nix develop
 make
 ```
 
+### Testing for check the stability of floating number
+```bash
+for i in $(seq 1 100); do echo "=== Run #$i ==="; if ! make; then echo "make failed at iteration $i"; exit 1; fi; done; echo "All 100 runs succeeded!"
+```
+
 ### Clean generated files
 ```bash
 make clean

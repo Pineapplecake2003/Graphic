@@ -7,6 +7,7 @@ import time
 import math
 import random
 import copy
+np.seterr(all='raise')
 
 class PointData:
     real_x:float
@@ -190,6 +191,7 @@ def main():
         toB1_b = copy.deepcopy(B0)
         toB2_b = copy.deepcopy(B0)
     else:
+        # P0 and P1 in same horizontal pixel line
         toP1_p = copy.deepcopy(P1)
         toP2_p = copy.deepcopy(P0)
 
@@ -200,9 +202,8 @@ def main():
     draw_color[0] = draw_color[0] * toB1_b[1]
     draw_color[1] = draw_color[1] * toB1_b[1]
     draw_color[2] = draw_color[2] * toB1_b[1]
-    print(P0, P1, P2)
-    print(B0, B1, B2)
-    putPixel(toInt(toP1_p[0]), toInt(toP1_p[1]), canva, draw_color)
+    # print(P0, P1, P2)
+    # print(B0, B1, B2)
     #print(toP1_p, toP2_p)
     #print(toB1_b, toB2_b)
     #print("--------------------")
@@ -230,28 +231,7 @@ def main():
 
     while(toP1_p[1] > P2[1]):
         time.sleep(0.0)
-        print(toP1_p, toP2_p)
-        if toP1_p[1] > P1[1]:
-            # Above P1
-            print("U")
-            toP1_v = toP1_v_U
-            toP2_v = toP2_v_U
-            
-            toB1_v = toB1_v_U
-            toB2_v = toB2_v_U
-        else:
-            # below P1
-            print("D")
-            toP1_v = toP1_v_D
-            toP2_v = toP2_v_D
-            
-            toB1_v = toB1_v_D
-            toB2_v = toB2_v_D
-        if(np.isclose(toP1_v[1], 0.) or np.isclose(toP2_v[1], 0.)):
-            # P0 and P1 in same horizontal pixel line
-            continue
-        toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v)
-        toB1_b, toB2_b = update_b(toB1_b, toB2_b, toB1_v, toB2_v)
+        #print(toP1_p, toP2_p)
 
         if toP1_p[0] > toP2_p[0]:
             left_p, right_p = toP2_p, toP1_p
@@ -261,7 +241,7 @@ def main():
             left_b, right_b = toB1_b, toB2_b
         # [x, b] ==> brightness per x
         b_x_dir_v = np.array([right_p[0] - left_p[0], right_b[1] - left_b[1]])
-        b_x_dir_v /= abs(b_x_dir_v[0])
+        b_x_dir_v = b_x_dir_v / abs(b_x_dir_v[0]) if abs(b_x_dir_v[0]) > 1. else b_x_dir_v
         b_px = left_b[1]
 
         for x in range(toInt(left_p[0]), toInt(right_p[0])+1):
@@ -271,11 +251,68 @@ def main():
             b_px += b_x_dir_v[1]
             putPixel(x, toInt(left_p[1]), canva, draw_color)
 
+        if toP1_p[1] > P1[1]:
+            # Above P1
+            #print("U")
+            toP1_v = toP1_v_U
+            toP2_v = toP2_v_U
+            
+            toB1_v = toB1_v_U
+            toB2_v = toB2_v_U
+        else:
+            # below P1
+            #print("D")
+            toP1_v = toP1_v_D
+            toP2_v = toP2_v_D
+            
+            toB1_v = toB1_v_D
+            toB2_v = toB2_v_D
+        toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v)
+        toB1_b, toB2_b = update_b(toB1_b, toB2_b, toB1_v, toB2_v)
     img = Image.fromarray(canva, mode="RGB")
     img.save("./images/test_have_line.png")
 
     canva = np.full_like(canva, 0xFF)
+
+
+
+    #########################################
+    #        Filling triangle state         #
+    #########################################
+    # [y, b] ==> brightness per y
+    B0 = np.array([P0[1], 0.5])
+    B1 = np.array([P1[1], 1.0])
+    B2 = np.array([P2[1], 0.3])
+    # sort to
+    #        0
+    #       /|
+    #      / |
+    #     1  |
+    #      \ |
+    #       \|
+    #        2
+    # sort y
+    if(P1[1] > P0[1]):
+        P0, P1 = P1, P0
+        B0, B1 = B1, B0
     
+    if(P2[1] > P0[1]):
+        P0, P2 = P2, P0
+        B0, B2 = B2, B0
+    
+    if(P2[1] > P1[1]):
+        P1, P2 = P2, P1
+        B1, B2 = B2, B1
+    
+    # y based
+    P0[1] = toInt(P0[1])
+    P1[1] = toInt(P1[1])
+    P2[1] = toInt(P2[1])
+    B0[0] = toInt(B0[0])
+    B1[0] = toInt(B1[0])
+    B2[0] = toInt(B2[0])
+    # big to small
+    # P0, P1, P2
     if P0[1] != P1[1]:
         toP1_p = copy.deepcopy(P0)
         toP2_p = copy.deepcopy(P0)
@@ -283,35 +320,47 @@ def main():
         toB1_b = copy.deepcopy(B0)
         toB2_b = copy.deepcopy(B0)
     else:
+        # P0 and P1 in same horizontal pixel line
         toP1_p = copy.deepcopy(P1)
         toP2_p = copy.deepcopy(P0)
 
         toB1_b = copy.deepcopy(B1)
         toB2_b = copy.deepcopy(B0)
+        
+
+    draw_color[0] = draw_color[0] * toB1_b[1]
+    draw_color[1] = draw_color[1] * toB1_b[1]
+    draw_color[2] = draw_color[2] * toB1_b[1]
+    # print(P0, P1, P2)
+    # print(B0, B1, B2)
+    #print(toP1_p, toP2_p)
+    #print(toB1_b, toB2_b)
+    #print("--------------------")
+
+    # Combinational circuit
+    toP1_v_U = P1 - P0
+    toP1_v_U = toP1_v_U / abs(toP1_v_U[1]) if not np.isclose(toP1_v_U[1], 0.) else toP1_v_U
+    toP2_v_U = P2 - P0
+    toP2_v_U = toP2_v_U / abs(toP2_v_U[1]) if not np.isclose(toP2_v_U[1], 0.) else toP2_v_U
+    
+    toB1_v_U = B1 - B0
+    toB1_v_U = toB1_v_U / abs(toB1_v_U[0]) if not np.isclose(toB1_v_U[0], 0.) else toB1_v_U
+    toB2_v_U = B2 - B0
+    toB2_v_U = toB2_v_U / abs(toB2_v_U[0]) if not np.isclose(toB2_v_U[0], 0.) else toB2_v_U
+
+    toP1_v_D = P2 - P1
+    toP1_v_D = toP1_v_D / abs(toP1_v_D[1]) if not np.isclose(toP1_v_D[1], 0.) else toP1_v_D
+    toP2_v_D = P2 - P0
+    toP2_v_D = toP2_v_D / abs(toP2_v_D[1]) if not np.isclose(toP2_v_D[1], 0.) else toP2_v_D
+    
+    toB1_v_D = B2 - B1
+    toB1_v_D = toB1_v_D / abs(toB1_v_D[0]) if not np.isclose(toB1_v_D[0], 0.) else toB1_v_D
+    toB2_v_D = B2 - B0
+    toB2_v_D = toB2_v_D / abs(toB2_v_D[0]) if not np.isclose(toB2_v_D[0], 0.) else toB2_v_D
+
     while(toP1_p[1] > P2[1]):
         time.sleep(0.0)
-        print(toP1_p, toP2_p)
-        if toP1_p[1] > P1[1]:
-            # Above P1
-            print("U")
-            toP1_v = toP1_v_U
-            toP2_v = toP2_v_U
-            
-            toB1_v = toB1_v_U
-            toB2_v = toB2_v_U
-        else:
-            # below P1
-            print("D")
-            toP1_v = toP1_v_D
-            toP2_v = toP2_v_D
-            
-            toB1_v = toB1_v_D
-            toB2_v = toB2_v_D
-        if(np.isclose(toP1_v[1], 0.) or np.isclose(toP2_v[1], 0.)):
-            # P0 and P1 in same horizontal pixel line
-            continue
-        toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v)
-        toB1_b, toB2_b = update_b(toB1_b, toB2_b, toB1_v, toB2_v)
+        #print(toP1_p, toP2_p)
 
         if toP1_p[0] > toP2_p[0]:
             left_p, right_p = toP2_p, toP1_p
@@ -321,7 +370,7 @@ def main():
             left_b, right_b = toB1_b, toB2_b
         # [x, b] ==> brightness per x
         b_x_dir_v = np.array([right_p[0] - left_p[0], right_b[1] - left_b[1]])
-        b_x_dir_v /= abs(b_x_dir_v[0])
+        b_x_dir_v = b_x_dir_v / abs(b_x_dir_v[0]) if abs(b_x_dir_v[0]) > 1. else b_x_dir_v
         b_px = left_b[1]
 
         for x in range(toInt(left_p[0]), toInt(right_p[0])+1):
@@ -331,10 +380,26 @@ def main():
             b_px += b_x_dir_v[1]
             putPixel(x, toInt(left_p[1]), canva, draw_color)
 
+        if toP1_p[1] > P1[1]:
+            # Above P1
+            #print("U")
+            toP1_v = toP1_v_U
+            toP2_v = toP2_v_U
+            
+            toB1_v = toB1_v_U
+            toB2_v = toB2_v_U
+        else:
+            # below P1
+            #print("D")
+            toP1_v = toP1_v_D
+            toP2_v = toP2_v_D
+            
+            toB1_v = toB1_v_D
+            toB2_v = toB2_v_D
+        toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v)
+        toB1_b, toB2_b = update_b(toB1_b, toB2_b, toB1_v, toB2_v)
     img = Image.fromarray(canva, mode="RGB")
     img.save("./images/test_no_line.png")
-
-
 
 if __name__ == "__main__":
     main()
