@@ -316,21 +316,7 @@ def update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v):
 
 def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
-
-    det = (points[1].loc[0] - points[0].loc[0]) * (points[2].loc[1] - points[0].loc[1]) - (points[2].loc[0] - points[0].loc[0]) * (points[1].loc[1] - points[0].loc[1])
-    if det == 0:
-        return
-    a_coff_for_brig = (points[1].b - points[0].b)*(points[2].loc[1] - points[0].loc[1]) - (points[2].b - points[0].b)*(points[1].loc[1] - points[0].loc[1])
-    a_coff_for_brig /= det
-
-    b_coff_for_brig = (points[2].b - points[0].b)*(points[1].loc[0] - points[0].loc[0]) - (points[1].b - points[0].b)*(points[2].loc[0] - points[0].loc[0])
-    b_coff_for_brig /= det
-
-    a_coff_for_z = (points[1].loc[2] - points[0].loc[2])*(points[2].loc[1] - points[0].loc[1]) - (points[2].loc[2] - points[0].loc[2])*(points[1].loc[1] - points[0].loc[1])
-    a_coff_for_z /= det
-
-    b_coff_for_z = (points[2].loc[2] - points[0].loc[2])*(points[1].loc[0] - points[0].loc[0]) - (points[1].loc[2] - points[0].loc[2])*(points[2].loc[0] - points[0].loc[0])
-    b_coff_for_z /= det
+    
     # Sort points depended on y
     # sort to
     #        0
@@ -369,12 +355,12 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
         toP1_p = copy.deepcopy(points[0])
         toP2_p = copy.deepcopy(points[0])
     else:
-        toP1_p = copy.deepcopy(points[1]) # 0 ________1          1 ________0    
-        toP2_p = copy.deepcopy(points[0]) #   \      /             \      /    
-                                          #    \    /               \    /    
-                                          #     \  /                 \  /    
+        toP1_p = copy.deepcopy(points[1]) # 0 ________1          1 ________0
+        toP2_p = copy.deepcopy(points[0]) #   \      /             \      /
+                                          #    \    /               \    /
+                                          #     \  /                 \  /
                                           #      \/                   \/
-                                          #       2         or         2         
+                                          #       2         or         2
 
 
 
@@ -397,6 +383,21 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     toB1_v_D = toB1_v_D / abs(toB1_v_D[0]) if not np.isclose(toB1_v_D[0], 0.) else toB1_v_D
     toB2_v_D = np.array([points[2].loc[1] - points[0].loc[1], points[2].b - points[0].b])
     toB2_v_D = toB2_v_D / abs(toB2_v_D[0]) if not np.isclose(toB2_v_D[0], 0.) else toB2_v_D
+    
+    det = (points[1].loc[0] - points[0].loc[0]) * (points[2].loc[1] - points[0].loc[1]) - (points[2].loc[0] - points[0].loc[0]) * (points[1].loc[1] - points[0].loc[1])
+    if det == 0:
+        return
+    a_coff_for_brig = (points[1].b - points[0].b)*(points[2].loc[1] - points[0].loc[1]) - (points[2].b - points[0].b)*(points[1].loc[1] - points[0].loc[1])
+    a_coff_for_brig /= det
+
+    b_coff_for_brig = (points[2].b - points[0].b)*(points[1].loc[0] - points[0].loc[0]) - (points[1].b - points[0].b)*(points[2].loc[0] - points[0].loc[0])
+    b_coff_for_brig /= det
+
+    a_coff_for_z = (points[1].loc[2] - points[0].loc[2])*(points[2].loc[1] - points[0].loc[1]) - (points[2].loc[2] - points[0].loc[2])*(points[1].loc[1] - points[0].loc[1])
+    a_coff_for_z /= det
+
+    b_coff_for_z = (points[2].loc[2] - points[0].loc[2])*(points[1].loc[0] - points[0].loc[0]) - (points[1].loc[2] - points[0].loc[2])*(points[2].loc[0] - points[0].loc[0])
+    b_coff_for_z /= det
 
 
     while(toP1_p.loc[1] > points[2].loc[1]):
