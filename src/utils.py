@@ -317,7 +317,10 @@ def update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v):
 def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
 
-    if(points[0].loc[1] == points[1].loc[1] and points[1].loc[1] == points[2].loc[1]):
+    if(
+        points[0].loc[1] == points[1].loc[1] and points[1].loc[1] == points[2].loc[1] or
+        points[0].loc[0] == points[1].loc[0] and points[1].loc[0] == points[2].loc[0]
+    ):
         return
     
     # Sort points depended on y
@@ -349,6 +352,11 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points[1].loc[1] = toInt(points[1].loc[1])
     points[2].loc[1] = toInt(points[2].loc[1])
 
+    # x
+    points[0].loc[0] = toInt(points[0].loc[0])
+    points[1].loc[0] = toInt(points[1].loc[0])
+    points[2].loc[0] = toInt(points[2].loc[0])
+
     if points[0].loc[1] != points[1].loc[1]:
         toP1_p = copy.deepcopy(points[0])
         toP2_p = copy.deepcopy(points[0])
@@ -358,7 +366,9 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
                                           #    \    /               \    /    
                                           #     \  /                 \  /    
                                           #      \/                   \/
-                                          #       2         or         2        
+                                          #       2         or         2         
+
+
 
     toP1_v_U = points[1].loc - points[0].loc
     toP1_v_U = toP1_v_U / abs(toP1_v_U[1]) if not np.isclose(toP1_v_U[1], 0.) else toP1_v_U
@@ -380,27 +390,44 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     toB2_v_D = np.array([points[2].loc[1] - points[0].loc[1], points[2].b - points[0].b])
     toB2_v_D = toB2_v_D / abs(toB2_v_D[0]) if not np.isclose(toB2_v_D[0], 0.) else toB2_v_D
     
+    det = (points[1].loc[0] - points[0].loc[0]) * (points[2].loc[1] - points[0].loc[1]) - (points[2].loc[0] - points[0].loc[0]) * (points[1].loc[1] - points[0].loc[1])
+    if det == 0:
+        return
+    a_coff_for_brig = (points[1].b - points[0].b)*(points[2].loc[1] - points[0].loc[1]) - (points[2].b - points[0].b)*(points[1].loc[1] - points[0].loc[1])
+    a_coff_for_brig /= det
+
+    b_coff_for_brig = (points[2].b - points[0].b)*(points[1].loc[0] - points[0].loc[0]) - (points[1].b - points[0].b)*(points[2].loc[0] - points[0].loc[0])
+    b_coff_for_brig /= det
+
+    a_coff_for_z = (points[1].loc[2] - points[0].loc[2])*(points[2].loc[1] - points[0].loc[1]) - (points[2].loc[2] - points[0].loc[2])*(points[1].loc[1] - points[0].loc[1])
+    a_coff_for_z /= det
+
+    b_coff_for_z = (points[2].loc[2] - points[0].loc[2])*(points[1].loc[0] - points[0].loc[0]) - (points[1].loc[2] - points[0].loc[2])*(points[2].loc[0] - points[0].loc[0])
+    b_coff_for_z /= det
+
+
     while(toP1_p.loc[1] > points[2].loc[1]):
         if toP1_p.loc[0] > toP2_p.loc[0]:
             left_p, right_p = toP2_p, toP1_p
         else:
             left_p, right_p = toP1_p, toP2_p
         
-        # [x, b] ==> brightness per x
-        b_x_dir_v = np.array([right_p.loc[0] - left_p.loc[0], right_p.b - left_p.b])
-        b_x_dir_v = b_x_dir_v / abs(b_x_dir_v[0]) if abs(b_x_dir_v[0]) > 1. else b_x_dir_v
-        b_px = left_p.b
-        z_v = np.array([right_p.loc[0] - left_p.loc[0], right_p.loc[2] - left_p.loc[2]])
-        z_v = z_v / abs(z_v[0]) if abs(z_v[0]) > 1. else z_v
-        z_px = left_p.loc[2]
-        for x in range(toInt(left_p.loc[0]), toInt(right_p.loc[0])+1):
+        z_px_left = a_coff_for_z * (left_p.loc[0] - points[0].loc[0]) + \
+                b_coff_for_z * (left_p.loc[1] - points[0].loc[1]) + points[0].loc[2]
+        z_px = z_px_left
+
+        b_px_left = a_coff_for_brig * (left_p.loc[0] - points[0].loc[0]) + \
+                b_coff_for_brig * (left_p.loc[1] - points[0].loc[1]) + points[0].b
+        b_px = b_px_left
+        
+        for x in range(int(left_p.loc[0]), int(right_p.loc[0])+1):
             draw_color = list(color)
             draw_color[0] = color[0] * b_px
             draw_color[1] = color[1] * b_px
             draw_color[2] = color[2] * b_px
             PutPixel(x, toInt(left_p.loc[1]), z_px, canva, draw_color)
-            b_px += b_x_dir_v[1]
-            z_px += z_v[1]
+            b_px += a_coff_for_brig
+            z_px += a_coff_for_z
 
         if toP1_p.loc[1] > points[1].loc[1]:
             # Above P1
