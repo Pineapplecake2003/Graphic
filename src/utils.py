@@ -316,7 +316,6 @@ def update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v):
 
 def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     points = [p0, p1, p2]
-    
     # Sort points depended on y
     # sort to
     #        0
@@ -326,6 +325,15 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
     #      \ |
     #       \|
     #        2
+    # y based
+    points[0].loc[1] = toInt(points[0].loc[1])
+    points[1].loc[1] = toInt(points[1].loc[1])
+    points[2].loc[1] = toInt(points[2].loc[1])
+
+    # x
+    points[0].loc[0] = toInt(points[0].loc[0])
+    points[1].loc[0] = toInt(points[1].loc[0])
+    points[2].loc[0] = toInt(points[2].loc[0])
     if(points[1].loc[1] > points[0].loc[1]):
         temp = points[1]
         points[1] = points[0]
@@ -341,15 +349,15 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
         points[2] = points[1]
         points[1] = temp
     
-    # y based
-    points[0].loc[1] = toInt(points[0].loc[1])
-    points[1].loc[1] = toInt(points[1].loc[1])
-    points[2].loc[1] = toInt(points[2].loc[1])
-
-    # x
-    points[0].loc[0] = toInt(points[0].loc[0])
-    points[1].loc[0] = toInt(points[1].loc[0])
-    points[2].loc[0] = toInt(points[2].loc[0])
+    # # y based
+    # points[0].loc[1] = toInt(points[0].loc[1])
+    # points[1].loc[1] = toInt(points[1].loc[1])
+    # points[2].loc[1] = toInt(points[2].loc[1])
+# 
+    # # x
+    # points[0].loc[0] = toInt(points[0].loc[0])
+    # points[1].loc[0] = toInt(points[1].loc[0])
+    # points[2].loc[0] = toInt(points[2].loc[0])
 
     if points[0].loc[1] != points[1].loc[1]:
         toP1_p = copy.deepcopy(points[0])
@@ -442,7 +450,7 @@ def DrawFlatShadedTriangle (p0, p1, p2, canva:Canva, color):
         toP1_p, toP2_p = update_p(toP1_p, toP2_p, toP1_v, toP2_v, toB1_v, toB2_v)
 
 
-        
+
 def DrawPhongShadedTriangle(p0, p1, p2, vn0, vn1, vn2, canva:Canva, color:tuple, s:float):
     vertices = [
         (p0, np.asarray(vn0, dtype=np.float32)),
