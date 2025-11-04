@@ -28,11 +28,11 @@ def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
         p.b = I_p
 
     # Face normal
-    n_vector = np.cross(
-        t.points[1].world_loc - t.points[0].world_loc,
-        t.points[2].world_loc - t.points[0].world_loc
-    )
-    n_vector /= np.maximum(np.linalg.norm(n_vector), 1e-6)
+    # n_vector = np.cross(
+    #     t.points[1].world_loc - t.points[0].world_loc,
+    #     t.points[2].world_loc - t.points[0].world_loc
+    # )
+    # n_vector /= np.maximum(np.linalg.norm(n_vector), 1e-6)
 
     # Lighting loop
     for li in canva.light_srouce:
@@ -45,6 +45,9 @@ def get_light_for_triangle(t: Triangle, canva: Canva, s:float):
 
             v_vector = -p.world_loc
             v_vector /= np.maximum(np.linalg.norm(v_vector), 1e-6)
+
+            n_vector = t.vns[i]
+            n_vector /= np.maximum(np.linalg.norm(n_vector), 1e-6)
 
             r_vector = 2 * np.dot(n_vector, l_vector) * n_vector - l_vector
             r_vector /= np.maximum(np.linalg.norm(r_vector), 1e-6)
