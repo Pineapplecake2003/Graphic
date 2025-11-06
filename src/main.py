@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import DataStructure
 # import pygame
-
+# test
 def main():
     obj_file = "./models/Rushia.obj"
 
