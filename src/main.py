@@ -5,7 +5,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import DataStructure
-# import pygame
 def main():
     obj_file = "./models/Rushia.obj"
 
