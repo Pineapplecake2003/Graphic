@@ -2,6 +2,7 @@ import numpy as np
 from DataStructure import *
 import copy
 import math
+import struct
 from tqdm import tqdm
 def PutPixel(x:int, y:int, z:float, canva:Canva, color:tuple):
     if z < canva.d:
@@ -638,6 +639,15 @@ def DrawWireframeTriangle(
     p0 = ProjectToCanvas(tri.points[0], canva)
     p1 = ProjectToCanvas(tri.points[1], canva)
     p2 = ProjectToCanvas(tri.points[2], canva)
+    
+    with open("triangle_info.txt", "a") as f:
+        for p in [p0, p1, p2]:
+            intx = int(round(p.loc[0]))
+            inty = int(round(p.loc[1]))
+            z_inv = 1.0 / p.loc[2]
+            brig = min(p.b, np.float32(1.0))
+            f.write(f"{struct.pack('>i', intx).hex()}\n{struct.pack('>i', inty).hex()}\n{struct.pack('>f', z_inv).hex()}\n{struct.pack('>f', brig).hex()}\n")
+    
     if p0 is None or p1 is None or p2 is None:
         return
     

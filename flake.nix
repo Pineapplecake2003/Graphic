@@ -33,53 +33,53 @@
           pillow
           matplotlib
           pygame
-          (ps.buildPythonPackage rec {
-            pname = "vedo";
-            version = "2025.5.4";
-            format = "pyproject";
-            src = ps.fetchPypi {
-              inherit pname version;
-              sha256 = "192kjaiw77idma08migqqbpxwfsrim0qkrlh526lzx4r5dw8bdgy";
-            };
-            nativeBuildInputs = [ ps.setuptools ps.wheel ps.build ];
-            propagatedBuildInputs = [
-              numpy
-              matplotlib
-              pillow
-              ps.vtk
-              ps.typing-extensions
-              ps.pygments
-            ];
-          })
+          # (ps.buildPythonPackage rec {
+          #   pname = "vedo";
+          #   version = "2025.5.4";
+          #   format = "pyproject";
+          #   src = ps.fetchPypi {
+          #     inherit pname version;
+          #     sha256 = "192kjaiw77idma08migqqbpxwfsrim0qkrlh526lzx4r5dw8bdgy";
+          #   };
+          #   nativeBuildInputs = [ ps.setuptools ps.wheel ps.build ];
+          #   propagatedBuildInputs = [
+          #     numpy
+          #     matplotlib
+          #     pillow
+          #     ps.vtk
+          #     ps.typing-extensions
+          #     ps.pygments
+          #   ];
+          # })
           ps.pip
         ]);
 
-        x11Packages = with pkgs; [
-          libGL
-          libGLU
-          xorg.xhost
-          xorg.xauth
-          xorg.libX11
-          xorg.libXrandr
-          xorg.libXi
-          xorg.libXcursor
-          xorg.libXinerama
-          xorg.libXrender
-          xorg.libXfixes
-          xorg.libXdamage
-          xorg.libXcomposite
-          xorg.libXt
-          xorg.libSM
-          xorg.libICE
-        ];
+        # x11Packages = with pkgs; [
+        #   libGL
+        #   libGLU
+        #   xorg.xhost
+        #   xorg.xauth
+        #   xorg.libX11
+        #   xorg.libXrandr
+        #   xorg.libXi
+        #   xorg.libXcursor
+        #   xorg.libXinerama
+        #   xorg.libXrender
+        #   xorg.libXfixes
+        #   xorg.libXdamage
+        #   xorg.libXcomposite
+        #   xorg.libXt
+        #   xorg.libSM
+        #   xorg.libICE
+        # ];
       in
       rec {
         devShells.default = pkgs.mkShell {
           name = "Graphic";
           packages = devTools 
             ++ nativeBuildInputs 
-            ++ [ pythonEnv (nixgl.packages.${system}.nixGLIntel) ]
-            ++ x11Packages;
+            ++ [ pythonEnv ];
+            # ++ x11Packages;
         };
       });
 }

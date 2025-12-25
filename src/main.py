@@ -1,16 +1,15 @@
 import numpy as np
 from utils import *
-from vedo import *
 from PIL import Image
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import DataStructure
 def main():
-    obj_file = "./models/Rushia.obj"
+    obj_file = "./models/teapot.obj"
 
-    dpi = 3
-    canva_height = 300
-    canva_width = 300
+    dpi = 1
+    canva_height = 480
+    canva_width = 680
 
     canva_height_px = canva_height * dpi
     canva_width_px = canva_width * dpi
@@ -31,22 +30,27 @@ def main():
     )
     
     object = load_objs(obj_file)
-    object.transform((-200, -1250, 1800), (25, 160, 0), 1.5)
-    object.set_s(5)
+    object.transform((0, 0, 2000), (-45, 20, 0), 300.0)
+    object.set_s(1)
+    
+    # Clear the triangle info file
+    with open("triangle_info.txt", "w") as f:
+        pass
+
     print("Render with Flat shading.")
     for t in tqdm(object.triangles, ncols=50):
     #for t in object.triangles:
         DrawWireframeTriangle(
             t,
             picture, 
-            (0x4E, 0xFE, 0xB3), 
-            (0x4E, 0xFE, 0xB3),
+            (0xFF, 0xFF, 0xFF), 
+            (0xFF, 0xFF, 0xFF),
             "Flat",
             s=object.s,
         )
     img = Image.fromarray(picture.array, mode="RGB")
     img.save("./images/result_Flat.png")
-    
+    exit()
     picture.clear()
 # 
     print("Render with Phong shading.")
