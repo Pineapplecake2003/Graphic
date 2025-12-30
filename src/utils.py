@@ -715,3 +715,20 @@ def load_objs(path:str):
     print(f"Number of triangles: {len(tris)}")
     obj = ThreeDimensionObject(tris, points)
     return obj
+
+
+def to_hex32(value):
+    """
+    Convert int or float to 32-bit hex string.
+    int   -> unsigned 32-bit
+    float -> IEEE-754 fp32
+    """
+    if isinstance(value, int):
+        return f"0x{value & 0xFFFFFFFF:08X}"
+
+    elif isinstance(value, np.float32):
+        packed = struct.pack('>f', value)   # big-endian fp32
+        return "0x" + packed.hex().upper()
+
+    else:
+        raise TypeError(f"Only int or float is supported, not {type(value)}")

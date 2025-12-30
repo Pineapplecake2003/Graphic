@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import DataStructure
 def main():
-    obj_file = "./models/teapot.obj"
+    obj_file = "./models/Rushia's_head.obj"
 
     dpi = 1
     canva_height = 480
@@ -30,13 +30,69 @@ def main():
     )
     
     object = load_objs(obj_file)
-    object.transform((0, 0, 2000), (-45, 20, 0), 300.0)
-    object.set_s(1)
-    
-    # Clear the triangle info file
-    with open("triangle_info.txt", "w") as f:
-        pass
+    with open("obj.dump", "w") as f:
+        f.write(f"{to_hex32(len(object.triangles) * 3)}\n")
+        rotation = (25, 160, 0)
+        location = (-200, -1250, 1800)
+        scale = 1.5
+        alpha, beta, gamma = rotation
+        a, b, g = np.deg2rad([alpha, beta, gamma])
+        r_x = np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(a), -np.sin(a)],
+                [0, np.sin(a), np.cos(a)]
+            ],
+            dtype=np.float32
+        )
+        r_y = np.array(
+            [
+                [np.cos(b), 0, np.sin(b)],
+                [0, 1, 0],
+                [-np.sin(b), 0, np.cos(b)]
+            ],
+            dtype=np.float32
+        )
+        r_z = np.array(
+            [
+                [np.cos(g), -np.sin(g), 0],
+                [np.sin(g), np.cos(g), 0],
+                [0, 0, 1]
+            ],
+            dtype=np.float32
+        )
+        R = r_z @ r_y @ r_x
+        offset_loc = np.array(location, dtype=float)
+        S = object.scale_matrix(scale)
+        R4 = object.rotation_matrix_4x4(R)
+        T = object.translation_matrix(location)
+        M = T @ R4 @ S
+        print(M)
+        for row in range(4):
+            for col in range(4):
+                f.write(f"{to_hex32(M[row, col])}\n")
+        f.write(f"{to_hex32(np.float32(600.0))}\n")
+        f.write(f"{to_hex32(np.float32(800.0))}\n")
+        f.write(f"{to_hex32(np.float32(1500.0))}\n")
+        f.write(f"{to_hex32(light_src1.li_dir[0])}\n")
+        f.write(f"{to_hex32(light_src1.li_dir[1])}\n")
+        f.write(f"{to_hex32(light_src1.li_dir[2])}\n")
+        f.write(f"{to_hex32(np.float32(light_src0.b))}\n")
+        f.write(f"{to_hex32(np.float32(light_src1.b))}\n")
+        f.write(f"{to_hex32(np.float32(ambient))}\n")
+        for t in object.triangles:
+            for p, vn in zip(t.points, t.vns):
+                f.write(f"{to_hex32(p.loc[0])}\n")
+                f.write(f"{to_hex32(p.loc[1])}\n")
+                f.write(f"{to_hex32(p.loc[2])}\n")
+                f.write(f"{to_hex32(np.float32(1.0))}\n")
+                f.write(f"{to_hex32(vn[0])}\n")
+                f.write(f"{to_hex32(vn[1])}\n")
+                f.write(f"{to_hex32(vn[2])}\n")
 
+
+    object.transform((-200, -1250, 1800), (25, 160, 0), 1.5)
+    object.set_s(1)
     print("Render with Flat shading.")
     for t in tqdm(object.triangles, ncols=50):
     #for t in object.triangles:

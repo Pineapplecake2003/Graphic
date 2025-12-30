@@ -87,10 +87,38 @@ class ThreeDimensionObject():
     triangles:list
     points:list
     s:float
+
     def __init__(self, triangles, points):
         self.triangles = triangles
         self.points = points
         self.s = 10
+
+    def scale_matrix(self, scale):
+            if np.isscalar(scale):
+                sx = sy = sz = scale
+            else:
+                sx, sy, sz = scale
+
+            return np.array([
+                [sx, 0,  0,  0],
+                [0,  sy, 0,  0],
+                [0,  0,  sz, 0],
+                [0,  0,  0,  1],
+            ], dtype=np.float32)
+
+    def rotation_matrix_4x4(self, R):
+        M = np.eye(4, dtype=np.float32)
+        M[:3, :3] = R
+        return M
+
+    def translation_matrix(self, location):
+        tx, ty, tz = location
+        return np.array([
+            [1, 0, 0, tx],
+            [0, 1, 0, ty],
+            [0, 0, 1, tz],
+            [0, 0, 0, 1 ],
+        ], dtype=np.float32)
 
     def transform(self, location:tuple, rotation:tuple, scale):
         """
@@ -125,13 +153,17 @@ class ThreeDimensionObject():
         )
         R = r_z @ r_y @ r_x
         offset_loc = np.array(location, dtype=float)
+        S = self.scale_matrix(scale)
+        R4 = self.rotation_matrix_4x4(R)
+        T = self.translation_matrix(location)
+
+        M = T @ R4 @ S
+
         for p in self.points:
-            original_loc = p.loc
-            transformed_loc = scale * original_loc
-            transformed_loc = R @ transformed_loc
-            transformed_loc = transformed_loc + offset_loc
-            p.loc = transformed_loc
-            p.world_loc = transformed_loc.copy()
+            local = np.array([p.loc[0], p.loc[1], p.loc[2], 1.0], dtype=np.float32)
+            world = M @ local
+            p.loc = world[:3]
+            p.world_loc = world[:3].copy()
             # TODO brightness change
 
         # if np.isscalar(scale):
