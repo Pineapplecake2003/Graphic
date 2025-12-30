@@ -31,7 +31,6 @@ def main():
     
     object = load_objs(obj_file)
     with open("obj.dump", "w") as f:
-        f.write(f"{to_hex32(len(object.triangles) * 3)}\n")
         rotation = (25, 160, 0)
         location = (-200, -1250, 1800)
         scale = 1.5
@@ -67,19 +66,33 @@ def main():
         R4 = object.rotation_matrix_4x4(R)
         T = object.translation_matrix(location)
         M = T @ R4 @ S
-        print(M)
+        # N
+        f.write(f"{to_hex32(len(object.triangles) * 3)}\n")
+
+        # MV matrix (4x4)
         for row in range(4):
             for col in range(4):
                 f.write(f"{to_hex32(M[row, col])}\n")
+        
+        # Lp (Lpx,Lpy,Lpz) 
         f.write(f"{to_hex32(np.float32(600.0))}\n")
         f.write(f"{to_hex32(np.float32(800.0))}\n")
         f.write(f"{to_hex32(np.float32(1500.0))}\n")
+        # Ld (Ldx,Ldy,Ldz
         f.write(f"{to_hex32(light_src1.li_dir[0])}\n")
         f.write(f"{to_hex32(light_src1.li_dir[1])}\n")
         f.write(f"{to_hex32(light_src1.li_dir[2])}\n")
+
+        # L_intensity
         f.write(f"{to_hex32(np.float32(light_src0.b))}\n")
         f.write(f"{to_hex32(np.float32(light_src1.b))}\n")
         f.write(f"{to_hex32(np.float32(ambient))}\n")
+
+        # P scale x, y
+        f.write(f"{to_hex32(np.float32(1.5))}\n")
+        f.write(f"{to_hex32(np.float32(1.5))}\n")
+
+        # Records (repeat N):
         for t in object.triangles:
             for p, vn in zip(t.points, t.vns):
                 f.write(f"{to_hex32(p.loc[0])}\n")
